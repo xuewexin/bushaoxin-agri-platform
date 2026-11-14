@@ -1,0 +1,42 @@
+server:
+  port: 8080
+  servlet:
+    encoding:
+      charset: UTF-8
+      force: true
+
+spring:
+  application:
+    name: agri-platform
+  # 默认采用内置内存模式，保证无外部 MySQL/Redis 依赖下也能直接一键跑通演示；
+  # 若连接正式 MySQL，只需切换为下方注释的 MySQL 连接字符串即可。
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:agri_platform;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE
+    username: sa
+    password: 
+    # MySQL 生产配置示例:
+    # driver-class-name: com.mysql.cj.jdbc.Driver
+    # url: jdbc:mysql://localhost:3306/agri_platform?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    # username: root
+    # password: your_password
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+      data-locations: classpath:data.sql
+      encoding: UTF-8
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto
+      table-underline: true
