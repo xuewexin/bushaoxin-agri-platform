@@ -6,11 +6,23 @@
     <header class="pc-top-bar">
       <div class="site-container top-bar-inner">
         <div class="top-bar-left">
-          <span class="region-pill">
-            <el-icon><Location /></el-icon> 不烧心·全国绿色源头直采通道
-          </span>
+          <!-- 城市省份切换 (仿淘宝区域定位) -->
+          <div class="region-dropdown">
+            <el-dropdown @command="handleRegionChange">
+              <span class="region-pill interactive">
+                <el-icon><Location /></el-icon> {{ currentRegion }} [切换地区]
+              </span>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item v-for="r in ['北京', '上海', '广州', '深圳', '杭州', '成都', '武汉', '西安', '南京', '重庆']" :key="r" :command="r">
+                    {{ r }}
+                  </el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+          </div>
           <span class="brand-slogan-pill">
-            <el-icon><CircleCheckFilled /></el-icon> 好产品，不烧心
+            <el-icon><CircleCheckFilled /></el-icon> 好产品，不烧心 · 源头直发
           </span>
           <!-- 登录/未登录状态 -->
           <div class="auth-bar-status">
@@ -30,10 +42,37 @@
         </div>
 
         <div class="top-bar-right">
+          <!-- 淘宝式快捷菜单 -->
+          <div class="top-quick-links">
+            <span class="quick-link" @click="activeTab = 'workbench'">我的淘宝</span>
+            <span class="quick-link" @click="activeTab = 'cart'">
+              购物车 <strong class="c-red">({{ cartList.length }})</strong>
+            </span>
+            <span class="quick-link" @click="couponCenterVisible = true">
+              <el-icon><Ticket /></el-icon> 领券中心
+            </span>
+            <span class="quick-link" @click="wangwangVisible = true">
+              <el-icon><Service /></el-icon> 掌柜客服
+            </span>
+            <!-- 手机逛二维码弹层 -->
+            <el-popover placement="bottom" :width="180" trigger="hover">
+              <template #reference>
+                <span class="quick-link mobile-link">
+                  <el-icon><Iphone /></el-icon> 手机逛
+                </span>
+              </template>
+              <div class="qr-popover-box">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=http://localhost:3000" class="qr-img" />
+                <div class="qr-text">扫码手机看直播</div>
+                <div class="qr-sub">好产品，不烧心</div>
+              </div>
+            </el-popover>
+          </div>
+
           <!-- 快捷身份模拟切换器 (6种角色) -->
           <div class="role-switch-box">
             <span class="role-title"><el-icon><Switch /></el-icon> 体验角色：</span>
-            <el-select v-model="currentRole" size="small" style="width: 140px;" @change="handleFastRoleSwitch">
+            <el-select v-model="currentRole" size="small" style="width: 130px;" @change="handleFastRoleSwitch">
               <el-option label="普通买家" value="CONSUMER" />
               <el-option label="种植合作社" value="COOP" />
               <el-option label="产地主播" value="ANCHOR" />
@@ -150,6 +189,21 @@
         </ul>
       </div>
     </nav>
+
+    <!-- ============================================================== -->
+    <!-- 3.1 淘宝式【天天领红包·开市盛典】促销通栏                        -->
+    <!-- ============================================================== -->
+    <div class="taobao-redpack-banner" @click="couponCenterVisible = true">
+      <div class="site-container redpack-flex">
+        <div class="redpack-left">
+          <span class="redpack-badge">🧧 天天领红包</span>
+          <span class="redpack-title">【不烧心·开市农品盛典】全场顺丰冷链包邮直发 ｜ 领 ¥88 农品满减消费券包 ｜ SGS 320项农残零检出安心购！</span>
+        </div>
+        <div class="redpack-right">
+          <button class="claim-btn-pulse">立即一键领券 &gt;</button>
+        </div>
+      </div>
+    </div>
 
     <!-- ============================================================== -->
     <!-- 4. 移动端专属顶部吸顶条 (≤768px 自适应显示)                     -->
@@ -384,16 +438,22 @@
                 <span class="coop-badge">不烧心保真</span>
                 {{ product.title }}
               </div>
+              <div class="goods-sales-metrics">
+                <span class="sales-num">月销 3200+ 件</span>
+                <span class="rating-num">99.8% 好评</span>
+                <span class="sf-pill">顺丰包邮</span>
+              </div>
               <div class="goods-specs">
                 <span>上市周期: {{ product.yieldCycle }}</span>
                 <span>预估年产: {{ product.totalYield }}</span>
               </div>
               <div class="goods-price-section">
                 <div class="retail-price">
-                  <span class="rmb">¥</span>
+                  <span class="rmb">券后 ¥</span>
                   <span class="main-num">{{ product.retailPrice.toString().split('.')[0] }}</span>
                   <span class="sub-num">.{{ (product.retailPrice.toString().split('.')[1] || '00') }}</span>
                   <span class="unit-label">/份</span>
+                  <span class="orig-price">¥{{ (product.retailPrice * 1.25).toFixed(1) }}</span>
                 </div>
                 <div class="b2b-price-tip">
                   大宗: ¥{{ product.wholesalePrice }}/斤
@@ -402,15 +462,26 @@
 
               <div class="goods-footer-action">
                 <span class="stock-status">库存 {{ product.stock }}{{ product.unit }}</span>
-                <el-button 
-                  type="warning" 
-                  size="small" 
-                  round 
-                  class="add-cart-btn"
-                  @click.stop="addToCart(product)"
-                >
-                  <el-icon><ShoppingCart /></el-icon> 加购物车
-                </el-button>
+                <div class="card-action-btns">
+                  <el-button 
+                    type="warning" 
+                    size="small" 
+                    round 
+                    class="add-cart-btn"
+                    @click.stop="addToCart(product)"
+                  >
+                    <el-icon><ShoppingCart /></el-icon> 加购
+                  </el-button>
+                  <el-button 
+                    type="danger" 
+                    size="small" 
+                    round 
+                    class="quick-buy-btn"
+                    @click.stop="quickBuyProduct(product)"
+                  >
+                    <el-icon><Lightning /></el-icon> 立即买
+                  </el-button>
+                </div>
               </div>
             </div>
           </div>
@@ -1026,33 +1097,58 @@
             </div>
           </div>
 
-          <el-card class="mt-4" header="📦 我的订单与顺丰冷链履约进度">
-            <el-table :data="buyerOrderList" stripe>
-              <el-table-column prop="order.orderNo" label="订单号" width="180" />
-              <el-table-column label="下单模式" width="120">
-                <template #default="{ row }">
-                  <el-tag :type="row.order.orderType === 2 ? 'danger' : 'primary'">
-                    {{ row.order.orderType === 2 ? '直播专享' : '原产地直购' }}
-                  </el-tag>
-                </template>
-              </el-table-column>
-              <el-table-column label="实付金额" width="120">
-                <template #default="{ row }">¥{{ row.order.totalAmount }}</template>
-              </el-table-column>
-              <el-table-column prop="order.receiverAddress" label="收货地址" min-width="220" />
-              <el-table-column label="物流状态" width="180">
-                <template #default="{ row }">
-                  <el-tag type="success">顺丰冷链速递 ({{ row.order.trackingNo }})</el-tag>
-                </template>
-              </el-table-column>
-              <el-table-column label="售后维权" width="140">
-                <template #default="{ row }">
-                  <el-button type="danger" link @click="requestRefund(row.order.id)">
-                    坏果极速退款
-                  </el-button>
-                </template>
-              </el-table-column>
-            </el-table>
+          <el-card class="mt-4" header="📦 我的订单与顺丰冷链履约进度 (支持全流程追踪与售后)">
+            <!-- 订单状态筛选 Tab -->
+            <div class="order-status-tabs-row">
+              <el-radio-group v-model="buyerOrderFilter" size="small">
+                <el-radio-button label="all">全部订单 ({{ buyerOrderList.length }})</el-radio-button>
+                <el-radio-button label="unpaid">待付款 (0)</el-radio-button>
+                <el-radio-button label="unshipped">待发货 (1)</el-radio-button>
+                <el-radio-button label="delivered">待收货/运输中 ({{ buyerOrderList.length }})</el-radio-button>
+                <el-radio-button label="completed">已完成 (3)</el-radio-button>
+              </el-radio-group>
+            </div>
+
+            <!-- 订单卡片列表 -->
+            <div class="taobao-order-list">
+              <div v-for="item in displayBuyerOrders" :key="item.order.id" class="taobao-order-card">
+                <div class="order-header-bar">
+                  <span class="o-time">{{ item.order.createTime?.replace('T', ' ') || '2026-11-14 08:30:00' }}</span>
+                  <span class="o-no">订单号: <strong>{{ item.order.orderNo }}</strong></span>
+                  <span class="o-shop"><el-icon><House /></el-icon> 凉山盐源高山果蔬合作社</span>
+                  <el-tag size="small" type="success" effect="plain" class="o-status">顺丰冷链运输中 (4.2℃)</el-tag>
+                </div>
+                <div class="order-body-grid">
+                  <div class="order-prod-item">
+                    <img :src="item.product?.coverImage || 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=600'" />
+                    <div class="p-meta">
+                      <div class="p-title">{{ item.product?.title || '【不烧心】凉山高山盐源丑苹果 5斤礼盒装' }}</div>
+                      <div class="p-sku">规格：5斤精选大果家庭尝鲜装 ｜ 顺丰恒温冷链包邮</div>
+                      <div class="p-safe-tag"><el-tag size="small" type="success">320项农残零检出</el-tag></div>
+                    </div>
+                  </div>
+                  <div class="order-receiver-box">
+                    <div class="name">收件人: {{ item.order.receiverName }}</div>
+                    <div class="phone">{{ item.order.receiverPhone }}</div>
+                    <div class="addr-detail">{{ item.order.receiverAddress }}</div>
+                  </div>
+                  <div class="order-price-col">
+                    <div class="price-val">¥{{ item.order.totalAmount }}</div>
+                    <div class="ship-tip">含顺丰冷链运费 (免运费)</div>
+                  </div>
+                  <div class="order-actions-col">
+                    <el-button type="primary" size="small" @click="openLogistics(item)">
+                      <el-icon><Van /></el-icon> 查看冷链物流
+                    </el-button>
+                    <el-button size="small" @click="confirmOrderReceived(item)">确认收货</el-button>
+                    <el-button size="small" type="warning" plain @click="openReviewModal(item)">评价晒单</el-button>
+                    <el-button size="small" type="danger" link @click="requestRefund(item.order.id)">
+                      坏果极速退款
+                    </el-button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </el-card>
         </div>
 
@@ -1186,6 +1282,71 @@
 
       </div>
 
+      <!-- 8.5 淘宝经典右侧垂直悬浮工具条 -->
+      <aside class="taobao-float-toolstrip">
+        <div class="toolstrip-item" @click="activeTab = 'workbench'">
+          <el-tooltip content="我的淘宝 / 会员中心" placement="left">
+            <div class="tool-cell">
+              <el-avatar :size="28" :src="currentUser.avatar" class="tool-avatar" />
+              <span class="tool-label">我的</span>
+            </div>
+          </el-tooltip>
+        </div>
+
+        <div class="toolstrip-item cart-cell" :class="{ active: activeTab === 'cart' }" @click="activeTab = 'cart'">
+          <el-tooltip content="统一购物车" placement="left">
+            <div class="tool-cell">
+              <el-badge :value="cartList.length" class="tool-badge">
+                <el-icon><ShoppingCartFull /></el-icon>
+              </el-badge>
+              <span class="tool-label">购物车</span>
+            </div>
+          </el-tooltip>
+        </div>
+
+        <div class="toolstrip-item" @click="couponCenterVisible = true">
+          <el-tooltip content="天天领红包 · 神券专区" placement="left">
+            <div class="tool-cell red-cell">
+              <el-icon><Ticket /></el-icon>
+              <span class="tool-label">领券</span>
+            </div>
+          </el-tooltip>
+        </div>
+
+        <div class="toolstrip-item" @click="wangwangVisible = true">
+          <el-tooltip content="掌柜旺旺 · 在线咨询 (3秒回复)" placement="left">
+            <div class="tool-cell green-cell">
+              <el-icon><Service /></el-icon>
+              <span class="tool-label">客服</span>
+            </div>
+          </el-tooltip>
+        </div>
+
+        <div class="toolstrip-item">
+          <el-popover placement="left" :width="180" trigger="hover">
+            <template #reference>
+              <div class="tool-cell">
+                <el-icon><Iphone /></el-icon>
+                <span class="tool-label">手机逛</span>
+              </div>
+            </template>
+            <div class="qr-popover-box">
+              <img src="https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=http://localhost:3000" class="qr-img" />
+              <div class="qr-text">扫码手机看直播</div>
+              <div class="qr-sub">好产品，不烧心</div>
+            </div>
+          </el-popover>
+        </div>
+
+        <div class="toolstrip-item top-cell" @click="scrollToTop">
+          <el-tooltip content="回到顶部" placement="left">
+            <div class="tool-cell">
+              <el-icon><Top /></el-icon>
+              <span class="tool-label">顶部</span>
+            </div>
+          </el-tooltip>
+        </div>
+      </aside>
     </main>
 
     <!-- ============================================================== -->
@@ -1421,30 +1582,106 @@
       </div>
     </el-dialog>
 
-    <!-- 对话框 9.4: 仿淘宝一键下单收银台 -->
-    <el-dialog v-model="checkoutModalVisible" title="🛒 确认订单与收银结算" width="480px">
+    <!-- 对话框 9.4: 仿淘宝高级收银台 (多地址/优惠券/淘金币/顺丰冷链) -->
+    <el-dialog v-model="checkoutModalVisible" title="🛒 确认订单与收银结算" width="560px" class="taobao-cashier-dialog">
       <div v-if="currentCheckoutProduct" class="checkout-panel">
+        <!-- 收货地址选择 -->
+        <div class="cashier-addr-section">
+          <div class="section-title-row">
+            <span><el-icon><Location /></el-icon> 收货地址选择：</span>
+            <el-button type="primary" link size="small" @click="showAddressEditModal = true">+ 新增地址</el-button>
+          </div>
+          <div class="addr-select-cards">
+            <div 
+              v-for="addr in addressList" 
+              :key="addr.id"
+              :class="['addr-item-radio', selectedAddressId === addr.id ? 'active' : '']"
+              @click="selectedAddressId = addr.id"
+            >
+              <div class="addr-tag-name">
+                <el-tag size="small" :type="addr.isDefault ? 'danger' : 'info'">{{ addr.tag }}</el-tag>
+                <strong>{{ addr.name }}</strong> ({{ addr.phone }})
+              </div>
+              <div class="addr-text">{{ addr.province }} {{ addr.city }} {{ addr.detail }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 结算商品信息 -->
         <div class="checkout-prod-meta">
           <img :src="currentCheckoutProduct.coverImage" />
           <div class="prod-text">
             <div class="title">{{ currentCheckoutProduct.title }}</div>
             <div class="origin">原产地: {{ currentCheckoutProduct.originPlace }}</div>
+            <div class="sku-info">已选规格: <strong>{{ currentCheckoutProduct.skuName || '5斤精选大果·家庭尝鲜装' }}</strong> x{{ currentCheckoutProduct.buyQuantity || 1 }}</div>
             <div class="price">结算单价: ¥{{ (currentCheckoutProduct.retailPrice * (isLiveDiscount ? 0.9 : 1)).toFixed(2) }}</div>
           </div>
         </div>
-        <el-divider />
-        <div class="address-box">
-          <div class="addr-title"><el-icon><Location /></el-icon> 默认收货地址：</div>
-          <div class="addr-detail">北京市朝阳区望京科技大厦B座1201室 (张小敏 收) 186****5678</div>
+
+        <!-- 配送服务保障 -->
+        <div class="cashier-service-box">
+          <div class="service-row">
+            <span><el-icon><Van /></el-icon> 配送方式：</span>
+            <strong>顺丰生鲜特快全程冷链包邮 (48小时达)</strong>
+          </div>
+          <div class="service-row">
+            <span><el-icon><Box /></el-icon> 生鲜包装：</span>
+            <span>五层高强瓦楞礼盒 + 生物保鲜冰袋 + 珍珠棉防震</span>
+          </div>
+          <div class="service-row">
+            <span><el-icon><CircleCheckFilled /></el-icon> 售后承诺：</span>
+            <span class="c-green">好产品，不烧心 · 假一赔四 · 坏果秒级全包赔</span>
+          </div>
         </div>
+
+        <!-- 优惠抵扣与明细 -->
+        <div class="cashier-discounts-box">
+          <div class="disc-row">
+            <span>商品金额小计：</span>
+            <span>¥{{ ((currentCheckoutProduct.retailPrice * (currentCheckoutProduct.buyQuantity || 1)) * (isLiveDiscount ? 0.9 : 1)).toFixed(2) }}</span>
+          </div>
+          <div class="disc-row">
+            <span>顺丰生鲜冷链运费：</span>
+            <span class="c-green">¥18.00 (合作社全场包邮 -¥18.00)</span>
+          </div>
+          <div class="disc-row">
+            <span><el-icon><Ticket /></el-icon> 不烧心开市红包抵扣：</span>
+            <span class="c-red">-¥10.00</span>
+          </div>
+          <div class="disc-row">
+            <span>淘金币农品专项抵扣：</span>
+            <span class="c-red">-¥2.50</span>
+          </div>
+        </div>
+
+        <!-- 买家留言 -->
+        <div class="cashier-remark-row">
+          <span>买家留言备注：</span>
+          <el-input v-model="orderRemarkNote" placeholder="选填：可备注尽量挑大的、熟一点的，顺丰放门口等" size="small" />
+        </div>
+
+        <!-- 支付方式 -->
+        <div class="cashier-pay-ways">
+          <span>支付方式：</span>
+          <el-radio-group v-model="selectedPayWay" size="small">
+            <el-radio-button label="alipay">支付宝 (推荐)</el-radio-button>
+            <el-radio-button label="wechat">微信支付</el-radio-button>
+            <el-radio-button label="ecny">农行惠农数字人民币</el-radio-button>
+          </el-radio-group>
+        </div>
+
+        <el-divider style="margin: 12px 0;" />
+
         <div class="order-final-row">
-          <span>实付款：</span>
-          <span class="final-price">¥{{ (currentCheckoutProduct.retailPrice * (isLiveDiscount ? 0.9 : 1)).toFixed(2) }}</span>
+          <span class="final-label">实际应付金额：</span>
+          <span class="final-price">¥{{ Math.max(0, ((currentCheckoutProduct.retailPrice * (currentCheckoutProduct.buyQuantity || 1)) * (isLiveDiscount ? 0.9 : 1) - 12.5)).toFixed(2) }}</span>
         </div>
       </div>
       <template #footer>
-        <el-button @click="checkoutModalVisible = false">取消</el-button>
-        <el-button type="danger" size="large" @click="confirmPayAndCreateOrder">立即支付并下单</el-button>
+        <el-button @click="checkoutModalVisible = false">返回修改</el-button>
+        <el-button type="danger" size="large" class="cashier-submit-btn" @click="confirmPayAndCreateOrder">
+          <el-icon><CircleCheckFilled /></el-icon> 立即确认支付并提交
+        </el-button>
       </template>
     </el-dialog>
 
@@ -1469,6 +1706,520 @@
       </template>
     </el-dialog>
 
+    <!-- 对话框 9.6: 仿淘宝商品详情页大弹窗 (图文/规格/评价/质检/溯源) -->
+    <el-dialog 
+      v-model="productDetailVisible" 
+      width="980px" 
+      top="4vh" 
+      class="taobao-detail-dialog" 
+      :show-close="true"
+      destroy-on-close
+    >
+      <div v-if="detailProduct" class="detail-page-container">
+        <!-- 面包屑 -->
+        <div class="detail-breadcrumb">
+          <span>首页</span> <span class="sep">&gt;</span>
+          <span>绿色农副</span> <span class="sep">&gt;</span>
+          <span>{{ detailProduct.category }}</span> <span class="sep">&gt;</span>
+          <span class="cur">{{ detailProduct.title }}</span>
+        </div>
+
+        <!-- 主体上下两分部：上方购买决策区 (左右两栏) -->
+        <div class="detail-top-section">
+          <!-- 左侧：媒体图库展示 -->
+          <div class="detail-left-gallery">
+            <div class="main-preview-box">
+              <img :src="detailGalleryImages[detailGalleryIndex]" class="main-preview-img" />
+              <span class="trust-corner-tag">好产品，不烧心 · 产地直供</span>
+            </div>
+            <!-- 缩略图选择器 -->
+            <div class="thumb-selector-row">
+              <div 
+                v-for="(img, idx) in detailGalleryImages" 
+                :key="idx"
+                :class="['thumb-box', detailGalleryIndex === idx ? 'active' : '']"
+                @mouseenter="detailGalleryIndex = idx"
+              >
+                <img :src="img" />
+              </div>
+            </div>
+            <!-- 产地保障与合作社名片 -->
+            <div class="detail-coop-card">
+              <div class="coop-card-head">
+                <el-avatar :size="38" src="https://api.dicebear.com/7.x/adventurer/svg?seed=UncleFarm" />
+                <div class="coop-card-info">
+                  <div class="name">凉山盐源高山果蔬生态合作社</div>
+                  <div class="auth-pill"><el-icon><Checked /></el-icon> 官方认证供货合作社 · 评分 4.98</div>
+                </div>
+              </div>
+              <div class="coop-card-actions">
+                <el-button size="small" type="primary" plain @click="contactShopSeller">
+                  <el-icon><Service /></el-icon> 联系掌柜
+                </el-button>
+                <el-button size="small" @click="activeTab = 'home'; productDetailVisible = false">
+                  <el-icon><House /></el-icon> 进合作社货架
+                </el-button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 右侧：商品购买决策与规格面板 -->
+          <div class="detail-right-info">
+            <div class="detail-title-box">
+              <span class="brand-tag">好产品，不烧心</span>
+              <span class="geo-tag">地理标志保护</span>
+              <h1 class="product-main-title">{{ detailProduct.title }}</h1>
+              <p class="product-sub-title">【源头合作社现摘直发】国家绿色食品认证 ｜ 320项农残零检出 ｜ 顺丰生鲜特快全程冷链包邮</p>
+            </div>
+
+            <!-- 淘宝百亿补贴价格栏 -->
+            <div class="taobao-price-banner">
+              <div class="price-header-row">
+                <span class="subsidy-label">百亿补贴券后价</span>
+                <span class="subsidy-tip">已直降 ¥{{ (currentSelectedSku.price * 0.25).toFixed(1) }}</span>
+              </div>
+              <div class="price-main-row">
+                <span class="p-currency">¥</span>
+                <span class="p-amount">{{ currentSelectedSku.price.toString().split('.')[0] }}</span>
+                <span class="p-decimal">.{{ (currentSelectedSku.price.toString().split('.')[1] || '00') }}</span>
+                <span class="p-orig">专柜价: ¥{{ (currentSelectedSku.price * 1.25).toFixed(1) }}</span>
+                <span class="p-hot-tag">限时尝鲜特惠</span>
+              </div>
+              <div class="price-meta-row">
+                <span>累计已售 <strong>1.2万+</strong> 件</span>
+                <span class="sep">|</span>
+                <span>月销 <strong>3500+</strong> 件</span>
+                <span class="sep">|</span>
+                <span><strong>99.8%</strong> 买家好评 (2800+ 评价)</span>
+              </div>
+            </div>
+
+            <!-- 优惠券速领 -->
+            <div class="detail-coupon-row">
+              <span class="label">优惠专区：</span>
+              <div class="coupon-tag-list">
+                <span class="coupon-chip" @click="couponCenterVisible = true">
+                  <el-icon><Ticket /></el-icon> 新客立减 ¥10
+                </span>
+                <span class="coupon-chip" @click="couponCenterVisible = true">
+                  满99减15
+                </span>
+                <span class="coupon-chip" @click="couponCenterVisible = true">
+                  满199减30
+                </span>
+                <span class="more-coupon-link" @click="couponCenterVisible = true">领券 &gt;</span>
+              </div>
+            </div>
+
+            <!-- 顺丰冷链直发承诺 -->
+            <div class="detail-delivery-row">
+              <span class="label">物流配送：</span>
+              <div class="delivery-content">
+                <div>
+                  <el-icon><Van /></el-icon> 
+                  <strong>顺丰生鲜特快全程冷链包邮</strong> 
+                  (从 {{ detailProduct.originPlace }} 合作社直发，48小时内现采装车送达)
+                </div>
+                <div class="service-guarantees">
+                  <span><el-icon><CircleCheckFilled /></el-icon> 坏果包赔</span>
+                  <span><el-icon><CircleCheckFilled /></el-icon> 假一赔四</span>
+                  <span><el-icon><CircleCheckFilled /></el-icon> 极速退款</span>
+                  <span><el-icon><CircleCheckFilled /></el-icon> 农残320项零检出</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- SKU 规格选择 -->
+            <div class="detail-sku-row">
+              <span class="label">规格分类：</span>
+              <div class="sku-cards-list">
+                <div 
+                  v-for="(sku, sIdx) in detailSkuList" 
+                  :key="sIdx"
+                  :class="['sku-card-btn', selectedSkuIndex === sIdx ? 'active' : '']"
+                  @click="selectedSkuIndex = sIdx"
+                >
+                  <span class="sku-name">{{ sku.name }}</span>
+                  <span class="sku-price">¥{{ sku.price }}</span>
+                  <span class="sku-tip">{{ sku.specTip }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 购买数量 -->
+            <div class="detail-qty-row">
+              <span class="label">购买数量：</span>
+              <el-input-number v-model="detailQuantity" :min="1" :max="detailProduct.stock" size="default" />
+              <span class="stock-hint">库存充足 (现货 {{ detailProduct.stock }} {{ detailProduct.unit }})</span>
+            </div>
+
+            <!-- 行动按钮组 -->
+            <div class="detail-action-buttons">
+              <el-button 
+                type="warning" 
+                size="large" 
+                class="btn-cart-lg"
+                @click="addDetailToCart"
+              >
+                <el-icon><ShoppingCart /></el-icon> 加入购物车
+              </el-button>
+              <el-button 
+                type="danger" 
+                size="large" 
+                class="btn-buy-lg"
+                @click="buyDetailNow"
+              >
+                <el-icon><Lightning /></el-icon> 立即购买
+              </el-button>
+              <el-button 
+                size="large" 
+                class="btn-chat-lg"
+                @click="contactShopSeller"
+              >
+                <el-icon><Service /></el-icon> 联系掌柜
+              </el-button>
+              <el-button 
+                size="large" 
+                :type="isCollected ? 'danger' : 'default'"
+                plain
+                @click="toggleFavorite"
+              >
+                <el-icon><Star /></el-icon> {{ isCollected ? '已收藏' : '收藏' }}
+              </el-button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 下方深度图文/评价/质检/溯源 Tabs -->
+        <div class="detail-bottom-tabs">
+          <el-tabs v-model="detailActiveTab">
+            <!-- TAB 1: 图文详情 -->
+            <el-tab-pane label="📖 图文详情与产地档案" name="desc">
+              <div class="tab-desc-content">
+                <div class="desc-card-block">
+                  <h3>🌱 源头生态环境与种植档案</h3>
+                  <p><strong>产地地理坐标：</strong>{{ detailProduct.originPlace }}，位于核心农业原生态保护区，年平均日照超 2800 小时，昼夜温差大，利于糖分自然沉积。</p>
+                  <p><strong>灌溉水质与土壤：</strong>纯净高原雪山冰融水自然灌溉，土壤富含有机质与天然微量硒元素，全程拒绝催熟剂与膨大剂。</p>
+                  <p><strong>上市与采收排期：</strong>{{ detailProduct.yieldCycle }}，预估合作社基地年总产出量为 {{ detailProduct.totalYield }}。</p>
+                </div>
+                <div class="desc-card-block">
+                  <h3>📦 顺丰生鲜特快冷链保鲜包装</h3>
+                  <p>采用食品级五层加厚高强瓦楞礼盒，内衬加厚珍珠棉减震凹槽网套，附带可降解生物冰袋与气调恒温保鲜袋，确保千里直达犹如刚从树上采摘般鲜活脆嫩！</p>
+                </div>
+                <div class="desc-card-block">
+                  <h3>🍽️ 食用与保鲜建议</h3>
+                  <p>收到果蔬后建议开箱轻放，置于 0~4℃ 冰箱保鲜层冷藏，冰镇后切块食用口感最为爆汁脆爽！如有极个别磕碰坏果，请直接拍照联系掌柜，不烧心提供坏果全包赔服务！</p>
+                </div>
+              </div>
+            </el-tab-pane>
+
+            <!-- TAB 2: 买家真实累计评价 -->
+            <el-tab-pane label="⭐️ 累计评价 (2800+)" name="reviews">
+              <div class="tab-reviews-content">
+                <!-- 统计环 -->
+                <div class="review-score-banner">
+                  <div class="score-circle">
+                    <span class="num">99.8%</span>
+                    <span class="sub">买家好评率</span>
+                  </div>
+                  <div class="impress-tags">
+                    <span class="tag">果肉脆甜多汁 (890)</span>
+                    <span class="tag">顺丰冷链超快 (680)</span>
+                    <span class="tag">包装无磕碰 (450)</span>
+                    <span class="tag">带半透明糖心 (380)</span>
+                    <span class="tag">回购很多次了 (320)</span>
+                  </div>
+                </div>
+
+                <!-- 真实买家评价卡片列表 -->
+                <div class="buyer-review-list">
+                  <div v-for="(rev, rIdx) in sampleReviews" :key="rIdx" class="buyer-rev-item">
+                    <div class="rev-user">
+                      <el-avatar :size="32" :src="rev.avatar" />
+                      <div class="user-meta">
+                        <span class="uname">{{ rev.name }}</span>
+                        <el-rate :model-value="rev.rate" disabled size="small" />
+                      </div>
+                      <span class="rev-time">{{ rev.time }}</span>
+                    </div>
+                    <div class="rev-spec">购买规格：{{ rev.spec }} ｜ 顺丰冷链特快直达</div>
+                    <div class="rev-text">{{ rev.content }}</div>
+                    <div v-if="rev.images && rev.images.length" class="rev-imgs">
+                      <img v-for="(img, iIdx) in rev.images" :key="iIdx" :src="img" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </el-tab-pane>
+
+            <!-- TAB 3: 权威农残质检报告 -->
+            <el-tab-pane label="🔬 权威农残质检与绿标认证" name="cert">
+              <div class="tab-cert-content">
+                <div class="cert-formal-sheet">
+                  <div class="cert-seal">SGS·已合格</div>
+                  <h2>国家绿色食品农副产品 320 项农残筛查检验报告书</h2>
+                  <div class="cert-code">检测备案号: SGS-AGRI-202611-00892</div>
+                  <div class="cert-table-box">
+                    <table class="cert-table">
+                      <tbody>
+                        <tr><td><strong>受检产品名称</strong></td><td>{{ detailProduct.title }}</td><td><strong>基地生产单位</strong></td><td>凉山盐源高山果蔬合作社</td></tr>
+                        <tr><td><strong>抽检检测机构</strong></td><td>SGS通标标准技术服务 / 农业农村部质检中心</td><td><strong>检测日期</strong></td><td>2026-11-12</td></tr>
+                        <tr><td><strong>筛查检测指标</strong></td><td>有机磷、有机氯、拟除虫菊酯等 320 项农药残留专项筛查</td><td><strong>检测结论</strong></td><td><span class="pass-tag">全部零检出 · 100% 合格</span></td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div class="expert-sign-box">
+                    <p><strong>质检首席专家评语：</strong>经质检中心实验室精密气相色谱/质谱多级筛查，320项指标全部未检出任何农药残留，符合绿色食品认证标准，达到生食与直供级品质。好产品，不烧心！</p>
+                    <div class="sign-meta">签发专家：中检院绿色农副认证组 ｜ 2026年11月</div>
+                  </div>
+                </div>
+              </div>
+            </el-tab-pane>
+
+            <!-- TAB 4: 一物一码溯源链 -->
+            <el-tab-pane label="🔍 一物一码真实溯源链路" name="trace">
+              <div class="tab-trace-content">
+                <el-timeline>
+                  <el-timeline-item timestamp="2026-03-15" placement="top" type="primary">
+                    <h4>高原基地育苗与播种施肥</h4>
+                    <p>施用羊粪发酵有机肥与微量元素，杜绝化学催熟化肥。</p>
+                  </el-timeline-item>
+                  <el-timeline-item timestamp="2026-06-20" placement="top" type="primary">
+                    <h4>人工疏果与物理双层套袋</h4>
+                    <p>高原纯净雪山水源灌溉，熊蜂天然授粉，套袋隔离外界灰尘与害虫。</p>
+                  </el-timeline-item>
+                  <el-timeline-item timestamp="2026-11-14 06:00" placement="top" type="success">
+                    <h4>晨采摘收与人工糖度筛选</h4>
+                    <p>测得果心平均糖度达 16.5°Brix，达特优级标准。</p>
+                  </el-timeline-item>
+                  <el-timeline-item timestamp="2026-11-14 10:30" placement="top" type="success">
+                    <h4>顺丰冷链专车装箱发运</h4>
+                    <p>入库预冷至 4℃，恒温气调专班冷链车运往全国枢纽。</p>
+                  </el-timeline-item>
+                </el-timeline>
+              </div>
+            </el-tab-pane>
+          </el-tabs>
+        </div>
+      </div>
+    </el-dialog>
+
+    <!-- 对话框 9.7: 天天领红包·神券立减弹窗 -->
+    <el-dialog v-model="couponCenterVisible" title="🧧 不烧心·天天领红包 神券中心" width="540px" class="coupon-center-dialog">
+      <div class="coupon-banner-top">
+        <div class="c-title">好产品，不烧心 · 开市专享补贴包</div>
+        <div class="c-sub">点击一键领取，结算收银台自动为您抵扣！</div>
+      </div>
+      <div class="coupon-cards-grid">
+        <div v-for="c in platformCoupons" :key="c.id" :class="['coupon-ticket-card', c.claimed ? 'claimed' : '']">
+          <div class="ticket-left">
+            <span class="t-currency">¥</span>
+            <span class="t-amount">{{ c.discount }}</span>
+          </div>
+          <div class="ticket-middle">
+            <div class="t-name">{{ c.name }}</div>
+            <div class="t-condition">{{ c.minSpend === 0 ? '无门槛使用' : `满 ¥${c.minSpend} 可用` }}</div>
+            <div class="t-expiry"><el-tag size="small" type="danger">{{ c.tag }}</el-tag> {{ c.expiry }}</div>
+          </div>
+          <div class="ticket-right">
+            <el-button 
+              :type="c.claimed ? 'info' : 'danger'" 
+              size="small" 
+              round
+              :disabled="c.claimed"
+              @click="claimCoupon(c)"
+            >
+              {{ c.claimed ? '已领取' : '立即领取' }}
+            </el-button>
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <el-button type="danger" size="large" @click="couponCenterVisible = false">完成并去挑选好物</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 抽屉 9.8: 旺旺掌柜在线即时客服抽屉 -->
+    <el-drawer v-model="wangwangVisible" title="💬 旺旺在线客服 · 掌柜值班中" size="420px" class="wangwang-drawer">
+      <div class="wangwang-container">
+        <!-- 客服名片 -->
+        <div class="service-header-strip">
+          <el-avatar :size="36" src="https://api.dicebear.com/7.x/adventurer/svg?seed=UncleFarm" />
+          <div class="service-info">
+            <div class="s-name">凉山盐源高山生态果蔬合作社 · 掌柜小美</div>
+            <div class="s-status"><span class="green-dot"></span> 田间在线中 · 平均 3 秒极速响应</div>
+          </div>
+        </div>
+
+        <!-- 当前咨询商品卡片 -->
+        <div v-if="detailProduct" class="current-consult-prod">
+          <img :src="detailProduct.coverImage" />
+          <div class="cp-text">
+            <div class="cp-title">{{ detailProduct.title }}</div>
+            <div class="cp-price">¥{{ detailProduct.retailPrice }} / 份 (顺丰包邮)</div>
+          </div>
+          <el-button size="small" type="warning" plain @click="sendProductLinkToWangwang">发送链接</el-button>
+        </div>
+
+        <!-- 聊天气泡流 -->
+        <div class="chat-bubble-stream" ref="wangwangScrollBox">
+          <div v-for="(msg, mIdx) in wangwangMessages" :key="mIdx" :class="['bubble-row', msg.sender]">
+            <el-avatar 
+              :size="30" 
+              :src="msg.sender === 'buyer' ? currentUser.avatar : 'https://api.dicebear.com/7.x/adventurer/svg?seed=UncleFarm'" 
+            />
+            <div class="bubble-content">
+              <div class="bubble-time">{{ msg.time }}</div>
+              <div class="bubble-text">{{ msg.content }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 常见问题快捷提问气泡 -->
+        <div class="quick-question-pills">
+          <span class="q-pill" @click="quickAskWangwang('顺丰包邮吗？什么时候发货？')">顺丰包邮吗？</span>
+          <span class="q-pill" @click="quickAskWangwang('如果收到有坏果怎么赔偿？')">坏果怎么赔？</span>
+          <span class="q-pill" @click="quickAskWangwang('是今年新采摘的带糖心吗？')">带糖心吗？</span>
+          <span class="q-pill" @click="quickAskWangwang('大宗采购批发有优惠合同吗？')">大宗采购批发？</span>
+        </div>
+
+        <!-- 输入发送栏 -->
+        <div class="wangwang-input-bar">
+          <el-input 
+            v-model="inputWangwangText" 
+            placeholder="向合作社掌柜提问..." 
+            @keyup.enter="sendCustomWangwang"
+          />
+          <el-button type="primary" @click="sendCustomWangwang">发 送</el-button>
+        </div>
+      </div>
+    </el-drawer>
+
+    <!-- 对话框 9.9: 顺丰生鲜冷链运输全程温控轨迹追踪弹窗 -->
+    <el-dialog v-model="logisticsModalVisible" title="🚚 顺丰生鲜冷链全程温控实时轨迹" width="620px">
+      <div v-if="currentTrackingOrder" class="logistics-container">
+        <!-- 冷链状态看板 -->
+        <div class="cold-chain-head-card">
+          <div class="sf-logo-title">
+            <span class="sf-brand">SF 顺丰速运</span>
+            <span class="tracking-code">运单号: {{ currentTrackingOrder.order?.trackingNo || 'SF1482910394' }}</span>
+          </div>
+          <div class="temp-indicator">
+            <span class="temp-badge">4.2℃ 恒温冷鲜</span>
+            <span class="temp-text">全程冷链车温湿度传感器联机监控中</span>
+          </div>
+        </div>
+
+        <!-- 顺丰运输路由时间轴 -->
+        <div class="sf-timeline-box">
+          <el-timeline>
+            <el-timeline-item timestamp="2026-11-15 08:00" placement="top" type="success" size="large">
+              <h4>派送中 · 顺丰朝阳酒仙桥营业点</h4>
+              <p>派送小哥 王师傅 (电话: 138-1234-9988) 正在冷鲜专车派送，请保持手机畅通！</p>
+            </el-timeline-item>
+            <el-timeline-item timestamp="2026-11-15 05:20" placement="top" type="primary">
+              <h4>到达北京顺义生鲜冷链一级枢纽</h4>
+              <p>干线冷链集装箱完成卸车，智能气调分拣并调拨至末端配送网点。</p>
+            </el-timeline-item>
+            <el-timeline-item timestamp="2026-11-14 20:40" placement="top" type="primary">
+              <h4>全货机航空干线冷链直飞</h4>
+              <p>搭载顺丰航空 O3-6922 专机从成都双流直飞北京首都机场。</p>
+            </el-timeline-item>
+            <el-timeline-item timestamp="2026-11-14 13:10" placement="top" type="primary">
+              <h4>成都双流冷链枢纽中心</h4>
+              <p>经快速预冷检测合格，完成安检并打板入仓。</p>
+            </el-timeline-item>
+            <el-timeline-item timestamp="2026-11-14 08:30" placement="top" type="info">
+              <h4>产地合作社揽收完成</h4>
+              <p>四川凉山州盐源县合作社采摘入箱，顺丰冷链专班专车 (川W·8821冷) 已揽收。</p>
+            </el-timeline-item>
+          </el-timeline>
+        </div>
+      </div>
+    </el-dialog>
+
+    <!-- 对话框 9.10: 支付成功与电子回执单弹窗 -->
+    <el-dialog v-model="orderSuccessModalVisible" title="🎉 支付成功 · 产地顺丰直发通知" width="460px" align-center>
+      <div class="order-success-panel">
+        <el-icon class="success-icon-big" color="#2ED573"><CircleCheckFilled /></el-icon>
+        <h2 class="success-title">支付成功！感谢支持源头合作社</h2>
+        <p class="success-slogan">好产品，不烧心 ｜ 源头纯天然 绿色放心购</p>
+        
+        <div class="receipt-box">
+          <div class="r-row"><span>订单编号：</span><strong>{{ lastCreatedOrderNo }}</strong></div>
+          <div class="r-row"><span>顺丰冷链单号：</span><strong class="c-blue">{{ lastCreatedSfNo }}</strong></div>
+          <div class="r-row"><span>发货基地：</span><span>四川凉山盐源高山生态果蔬合作社</span></div>
+          <div class="r-row"><span>配送方式：</span><span>顺丰生鲜特快全程冷链包邮</span></div>
+          <div class="r-row"><span>承诺时效：</span><span>48小时内现摘现发，坏果包赔</span></div>
+        </div>
+
+        <div class="receipt-actions">
+          <el-button type="primary" size="large" @click="orderSuccessModalVisible = false; openLogistics({ order: { trackingNo: lastCreatedSfNo } })">
+            <el-icon><Van /></el-icon> 查看顺丰冷链追踪
+          </el-button>
+          <el-button size="large" @click="orderSuccessModalVisible = false; activeTab = 'workbench'">
+            查看我的订单
+          </el-button>
+        </div>
+      </div>
+    </el-dialog>
+
+    <!-- 对话框 9.11: 买家五星好评与晒单弹窗 -->
+    <el-dialog v-model="reviewModalVisible" title="⭐️ 农产品评价与晒单" width="480px">
+      <el-form label-position="top">
+        <el-form-item label="整体满意度 (好产品不烧心)">
+          <el-rate v-model="reviewForm.rating" show-text :texts="['差评', '勉强', '一般', '推荐', '超赞！脆甜不烧心']" />
+        </el-form-item>
+        <el-form-item label="真实品尝体验与评价心得">
+          <el-input 
+            v-model="reviewForm.comment" 
+            type="textarea" 
+            :rows="4" 
+            placeholder="分享果肉脆甜度、水分、顺丰冷链速度等体验，给其他吃客提供参考..." 
+          />
+        </el-form-item>
+        <el-form-item label="晒单买家秀 (已自动关联产地实拍)">
+          <div class="review-upload-preview">
+            <img src="https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=200" />
+            <img src="https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=200" />
+          </div>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="reviewModalVisible = false">取消</el-button>
+        <el-button type="danger" @click="submitBuyerReview">提交五星好评</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 对话框 9.12: 新增/管理收货地址弹窗 -->
+    <el-dialog v-model="showAddressEditModal" title="📍 新增收货地址" width="480px">
+      <el-form label-position="top">
+        <el-form-item label="收货人姓名">
+          <el-input v-model="newAddressForm.name" placeholder="请输入收件人真实姓名" />
+        </el-form-item>
+        <el-form-item label="手机号码">
+          <el-input v-model="newAddressForm.phone" placeholder="请输入11位手机号码" />
+        </el-form-item>
+        <el-form-item label="所在省市区">
+          <el-input v-model="newAddressForm.province" placeholder="如：北京市海淀区" />
+        </el-form-item>
+        <el-form-item label="详细街道门牌号">
+          <el-input v-model="newAddressForm.detail" placeholder="如：中关村南大街1号院5号楼801室" />
+        </el-form-item>
+        <el-form-item label="地址标签">
+          <el-radio-group v-model="newAddressForm.tag" size="small">
+            <el-radio-button label="家">家</el-radio-button>
+            <el-radio-button label="公司">公司</el-radio-button>
+            <el-radio-button label="仓库">仓库</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showAddressEditModal = false">取消</el-button>
+        <el-button type="primary" @click="saveNewAddress">保存并使用该地址</el-button>
+      </template>
+    </el-dialog>
+
   </div>
 </template>
 
@@ -1479,6 +2230,259 @@ import api from './api'
 
 // 当前主 Tab: home | cart | live | wholesale | trace | workbench
 const activeTab = ref('home')
+const currentRegion = ref('北京')
+const handleRegionChange = (r) => {
+  currentRegion.value = r
+  ElMessage.success(`已切换送达城市为：【${r}】，已为您匹配周边顺丰次日达原产地货源！`)
+}
+
+// ==========================================
+// 淘宝收银台与收货地址管理
+// ==========================================
+const orderRemarkNote = ref('')
+const selectedPayWay = ref('alipay')
+const selectedAddressId = ref(1)
+const showAddressEditModal = ref(false)
+const newAddressForm = ref({
+  name: '',
+  phone: '',
+  province: '北京市',
+  city: '海淀区',
+  detail: '',
+  tag: '家'
+})
+const addressList = ref([
+  { id: 1, name: '张小敏', phone: '186****5678', province: '北京市', city: '朝阳区', detail: '望京科技大厦B座1201室', isDefault: true, tag: '公司' },
+  { id: 2, name: '李淘淘', phone: '139****1234', province: '上海市', city: '浦东新区', detail: '张江高科技园南区 淘鲜达直营仓', isDefault: false, tag: '仓库' },
+  { id: 3, name: '王生鲜', phone: '135****8899', province: '成都市', city: '武侯区', detail: '天府三街腾讯大厦A座8层', isDefault: false, tag: '家' }
+])
+
+const saveNewAddress = () => {
+  if (!newAddressForm.value.name || !newAddressForm.value.phone || !newAddressForm.value.detail) {
+    ElMessage.warning('请填写完整的收件人姓名、电话与详细地址')
+    return
+  }
+  const newId = Date.now()
+  addressList.value.push({
+    id: newId,
+    name: newAddressForm.value.name,
+    phone: newAddressForm.value.phone,
+    province: newAddressForm.value.province,
+    city: newAddressForm.value.city,
+    detail: newAddressForm.value.detail,
+    tag: newAddressForm.value.tag,
+    isDefault: false
+  })
+  selectedAddressId.value = newId
+  showAddressEditModal.value = false
+  ElMessage.success('收货地址新增成功，已自动设为当前结算地址')
+}
+
+// 支付成功回执单
+const orderSuccessModalVisible = ref(false)
+const lastCreatedOrderNo = ref('TB20261114008921')
+const lastCreatedSfNo = ref('SF148291039401')
+
+// ==========================================
+// 仿淘宝商品详情页状态 (Product Detail)
+// ==========================================
+const productDetailVisible = ref(false)
+const detailProduct = ref(null)
+const detailGalleryIndex = ref(0)
+const selectedSkuIndex = ref(0)
+const detailQuantity = ref(1)
+const detailActiveTab = ref('desc')
+const isCollected = ref(false)
+
+const detailGalleryImages = computed(() => {
+  if (!detailProduct.value) return []
+  const baseImg = detailProduct.value.coverImage
+  return [
+    baseImg,
+    'https://images.unsplash.com/photo-1542838132-92c53300491e?w=800',
+    'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=800',
+    'https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?w=800'
+  ]
+})
+
+const detailSkuList = computed(() => {
+  if (!detailProduct.value) return []
+  const p = detailProduct.value.retailPrice
+  return [
+    { name: '5斤精选大果·家庭尝鲜装', price: p, weight: '5斤', specTip: '现摘现发·果香浓郁' },
+    { name: '10斤特惠大果·礼盒精装 (立省¥15)', price: +(p * 1.85).toFixed(1), weight: '10斤', specTip: '走亲访友精选礼盒' },
+    { name: '20斤大宗整箱·批发特惠 (立省¥35)', price: +(p * 3.4).toFixed(1), weight: '20斤', specTip: '家庭囤货/餐饮直发' }
+  ]
+})
+
+const currentSelectedSku = computed(() => {
+  return detailSkuList.value[selectedSkuIndex.value] || { name: '5斤精选装', price: detailProduct.value?.retailPrice || 0, weight: '5斤' }
+})
+
+const sampleReviews = ref([
+  {
+    name: '北京吃客·小美',
+    avatar: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Reviewer1',
+    rate: 5,
+    time: '2026-11-13',
+    spec: '5斤精选大果·家庭尝鲜装',
+    content: '顺丰冷链第二天一早就送到了！开箱果香味扑鼻，切开全是半透明的蜜心，又脆又甜水分超足，老人小孩都抢着吃，好产品真的不烧心！',
+    images: [
+      'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=200',
+      'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=200'
+    ]
+  },
+  {
+    name: '上海淘淘·陈先生',
+    avatar: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Reviewer2',
+    rate: 5,
+    time: '2026-11-12',
+    spec: '10斤特惠大果·礼盒精装',
+    content: '买来送长辈的，包装特别严实，五层加厚瓦楞箱没有任何磕碰。查了一物一码，确实是凉山盐源高山基地直采的，320项农残未检出吃着特别放心。',
+    images: []
+  },
+  {
+    name: '广州吃货老张',
+    avatar: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Reviewer3',
+    rate: 5,
+    time: '2026-11-10',
+    spec: '20斤大宗整箱·批发特惠',
+    content: '合作社源头直发确实比超市便宜太多了！单果均匀分量足，已经推荐给单位同事团购了，回购第五次了。',
+    images: [
+      'https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?w=200'
+    ]
+  }
+])
+
+const toggleFavorite = () => {
+  isCollected.value = !isCollected.value
+  ElMessage.success(isCollected.value ? '已成功收藏该产地好物！可随时在个人中心查看' : '已取消收藏')
+}
+
+// ==========================================
+// 天天领红包与优惠券系统
+// ==========================================
+const couponCenterVisible = ref(false)
+const platformCoupons = ref([
+  { id: 1, name: '新客尝鲜无门槛红包', discount: 10, minSpend: 0, tag: '全场通用', expiry: '7天内有效', claimed: false },
+  { id: 2, name: '时令鲜果满减优惠券', discount: 15, minSpend: 99, tag: '水果专享', expiry: '本周末前有效', claimed: false },
+  { id: 3, name: '绿色有机放心消费券', discount: 30, minSpend: 199, tag: '全场通用', expiry: '30天内有效', claimed: false },
+  { id: 4, name: 'B2B大宗采购补贴津贴', discount: 100, minSpend: 1000, tag: '大宗吨批', expiry: '本月内有效', claimed: false }
+])
+
+const claimCoupon = (c) => {
+  c.claimed = true
+  ElNotification({
+    title: '🎉 领券成功！',
+    message: `已为您发放【${c.name} (立减¥${c.discount})】，结算收银台将自动为您抵扣！`,
+    type: 'success',
+    duration: 3000
+  })
+}
+
+// ==========================================
+// 旺旺在线即时客服抽屉
+// ==========================================
+const wangwangVisible = ref(false)
+const inputWangwangText = ref('')
+const wangwangMessages = ref([
+  { sender: 'service', time: '刚刚', content: '您好！我是凉山盐源高山果蔬生态合作社值班掌柜小美。好产品，不烧心！请问有什么关于果品、顺丰物流或大宗集采可以帮您解答的呢？' }
+])
+
+const quickAskWangwang = (q) => {
+  wangwangMessages.value.push({ sender: 'buyer', time: '刚刚', content: q })
+  setTimeout(() => {
+    let reply = '亲亲，我们是产地直发，今天清晨采摘，下午顺丰冷链直发，保证新鲜！'
+    if (q.includes('快递') || q.includes('包邮')) {
+      reply = '亲，我们全场默认发【顺丰生鲜特快全程冷链】，全国大部分省市48小时内直达，全场包邮免运费哦！'
+    } else if (q.includes('坏果') || q.includes('赔')) {
+      reply = '亲亲放心，我们平台贯彻“好产品，不烧心”坏果秒赔承诺！如有坏果拍照发给客服，按坏果比例极速秒退款，绝不推脱！'
+    } else if (q.includes('糖心') || q.includes('采摘')) {
+      reply = '高原昼夜温差大、日照超2800小时，果子自然成熟糖心率高达90%以上，果肉酥脆化渣！'
+    } else if (q.includes('大宗') || q.includes('批发')) {
+      reply = '大宗整车/整吨直发支持在线签署《大宗意向电子合同》，提供企业对公结算与检验报告，可在‘B2B大宗采购中心’直接发起询价单！'
+    }
+    wangwangMessages.value.push({ sender: 'service', time: '刚刚', content: reply })
+  }, 500)
+}
+
+const sendCustomWangwang = () => {
+  if (!inputWangwangText.value.trim()) return
+  const q = inputWangwangText.value.trim()
+  wangwangMessages.value.push({ sender: 'buyer', time: '刚刚', content: q })
+  inputWangwangText.value = ''
+  setTimeout(() => {
+    wangwangMessages.value.push({
+      sender: 'service',
+      time: '刚刚',
+      content: `收到亲亲的咨询：“${q}”。合作社掌柜正在田间地头为您核对该批次鲜果数据，请放心选购！好产品，不烧心！`
+    })
+  }, 700)
+}
+
+const sendProductLinkToWangwang = () => {
+  if (!detailProduct.value) return
+  wangwangMessages.value.push({
+    sender: 'buyer',
+    time: '刚刚',
+    content: `【咨询商品】${detailProduct.value.title} (单价: ¥${detailProduct.value.retailPrice} / 产地: ${detailProduct.value.originPlace})`
+  })
+  setTimeout(() => {
+    wangwangMessages.value.push({
+      sender: 'service',
+      time: '刚刚',
+      content: `亲，这款【${detailProduct.value.title.slice(0, 10)}...】是我们合作社当季热销爆款，320项农残零检出，现在下单赠送运费险与坏果包赔，性价比极高！`
+    })
+  }, 600)
+}
+
+// ==========================================
+// 顺丰冷链物流与买家评价
+// ==========================================
+const logisticsModalVisible = ref(false)
+const currentTrackingOrder = ref(null)
+const openLogistics = (order) => {
+  currentTrackingOrder.value = order
+  logisticsModalVisible.value = true
+}
+
+const reviewModalVisible = ref(false)
+const currentReviewOrder = ref(null)
+const reviewForm = ref({ rating: 5, comment: '苹果非常脆甜多汁，半透明糖心清晰可见，顺丰冷链包装很完美无任何磕碰，全家人都特别喜欢！' })
+
+const openReviewModal = (order) => {
+  currentReviewOrder.value = order
+  reviewModalVisible.value = true
+}
+
+const submitBuyerReview = () => {
+  reviewModalVisible.value = false
+  ElNotification({
+    title: '评价晒单成功！',
+    message: '感谢您对优质原产地农产品的真实评价与鼓励！好产品，不烧心',
+    type: 'success'
+  })
+}
+
+const confirmOrderReceived = (order) => {
+  ElNotification({
+    title: '确认收货成功！',
+    message: '已确认收货，款项已安全划拨至种植合作社账户！',
+    type: 'success'
+  })
+}
+
+// 买家订单状态筛选
+const buyerOrderFilter = ref('all')
+const displayBuyerOrders = computed(() => {
+  if (buyerOrderFilter.value === 'all') return buyerOrderList.value
+  if (buyerOrderFilter.value === 'delivered') return buyerOrderList.value
+  return buyerOrderList.value
+})
+
+const scrollToTop = () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
 
 // 登录与六大角色状态 (默认卡通头像)
 const isLoggedIn = ref(true)
@@ -2156,24 +3160,33 @@ const submitQuickPublishApi = async () => {
 // 下单结算
 const confirmPayAndCreateOrder = async () => {
   try {
+    const isCartMerge = currentCheckoutProduct.value?.id === 999
+    const prodId = isCartMerge ? (cartList.value.find(x => x.selected)?.id || 1) : (currentCheckoutProduct.value.id || 1)
+    const addr = addressList.value.find(x => x.id === selectedAddressId.value) || addressList.value[0]
+    
     const payload = {
       buyerId: currentUser.value.id || 6,
-      productId: currentCheckoutProduct.value.id,
-      quantity: 1,
+      productId: prodId,
+      quantity: currentCheckoutProduct.value?.buyQuantity || 1,
       orderType: isLiveDiscount.value ? 2 : 1,
-      receiverName: '张小敏',
-      receiverPhone: '18612345678',
-      receiverAddress: '北京市朝阳区望京科技大厦B座1201室'
+      receiverName: addr.name,
+      receiverPhone: addr.phone,
+      receiverAddress: `${addr.province} ${addr.city} ${addr.detail}`
     }
     await api.post('/order/create', payload)
+    
+    // 生成真实格式订单号与顺丰单号
+    lastCreatedOrderNo.value = 'TB' + Date.now() + Math.floor(Math.random() * 899 + 100)
+    lastCreatedSfNo.value = 'SF' + (1400000000000 + Math.floor(Math.random() * 899999999999))
+    
     checkoutModalVisible.value = false
     // 从购物车移除已结算商品
-    cartList.value = cartList.value.filter(x => !x.selected)
-    ElNotification({
-      title: '支付成功！',
-      message: '合作社已收到您的订单并安排顺丰冷链直发！好产品，不烧心',
-      type: 'success'
-    })
+    if (isCartMerge) {
+      cartList.value = cartList.value.filter(x => !x.selected)
+    }
+    
+    orderSuccessModalVisible.value = true
+    
     fetchProductsFromBackend()
     loadBuyerOrders()
   } catch (err) {
@@ -2264,10 +3277,77 @@ const requestRefund = async (orderId) => {
   }
 }
 
+// 开启仿淘宝丰富商品详情页
 const openProductDetail = (product) => {
-  currentCheckoutProduct.value = product
+  detailProduct.value = product
+  selectedSkuIndex.value = 0
+  detailQuantity.value = 1
+  detailGalleryIndex.value = 0
+  detailActiveTab.value = 'desc'
+  isCollected.value = false
+  productDetailVisible.value = true
+}
+
+// 快速立即购买 (直接拉起收银台)
+const quickBuyProduct = (product) => {
+  detailProduct.value = product
+  selectedSkuIndex.value = 0
+  detailQuantity.value = 1
+  currentCheckoutProduct.value = {
+    ...product,
+    skuName: '5斤精选大果·家庭尝鲜装',
+    buyQuantity: 1,
+    retailPrice: product.retailPrice
+  }
   isLiveDiscount.value = false
   checkoutModalVisible.value = true
+}
+
+// 在详情页中加入购物车
+const addDetailToCart = () => {
+  if (!detailProduct.value) return
+  const sku = currentSelectedSku.value
+  const existing = cartList.value.find(x => x.id === detailProduct.value.id && x.skuName === sku.name)
+  if (existing) {
+    existing.quantity += detailQuantity.value
+  } else {
+    cartList.value.push({
+      id: detailProduct.value.id,
+      title: detailProduct.value.title,
+      skuName: sku.name,
+      originPlace: detailProduct.value.originPlace,
+      retailPrice: sku.price,
+      coverImage: detailProduct.value.coverImage,
+      quantity: detailQuantity.value,
+      selected: true
+    })
+  }
+  ElNotification({
+    title: '已加入购物车！',
+    message: `已将【${detailProduct.value.title.slice(0, 10)}...】(${sku.name} x${detailQuantity.value}) 加入购物车！`,
+    type: 'success',
+    duration: 2500
+  })
+}
+
+// 在详情页中立即购买
+const buyDetailNow = () => {
+  if (!detailProduct.value) return
+  const sku = currentSelectedSku.value
+  currentCheckoutProduct.value = {
+    ...detailProduct.value,
+    skuName: sku.name,
+    buyQuantity: detailQuantity.value,
+    retailPrice: sku.price
+  }
+  isLiveDiscount.value = false
+  productDetailVisible.value = false
+  checkoutModalVisible.value = true
+}
+
+// 联系掌柜
+const contactShopSeller = () => {
+  wangwangVisible.value = true
 }
 
 const openVisitBookingModal = (product) => {
@@ -2330,6 +3410,1163 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* ============================================================== */
+/* 仿淘宝电商高级交互与详情页视觉体系                              */
+/* ============================================================== */
+
+/* 1. 顶部城市切换与快捷菜单 */
+.region-dropdown {
+  display: inline-flex;
+  align-items: center;
+}
+.region-pill.interactive {
+  cursor: pointer;
+  background: rgba(255, 80, 0, 0.08);
+  color: #ff5000;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+}
+.region-pill.interactive:hover {
+  background: #ff5000;
+  color: #ffffff;
+}
+
+.top-quick-links {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-right: 16px;
+}
+.quick-link {
+  font-size: 12px;
+  color: #666;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  transition: color 0.2s;
+}
+.quick-link:hover {
+  color: #ff5000;
+}
+.quick-link .c-red {
+  color: #ff5000;
+  margin-left: 2px;
+}
+.qr-popover-box {
+  text-align: center;
+  padding: 8px 4px;
+}
+.qr-popover-box .qr-img {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto;
+  display: block;
+}
+.qr-popover-box .qr-text {
+  font-size: 13px;
+  font-weight: bold;
+  color: #333;
+  margin-top: 6px;
+}
+.qr-popover-box .qr-sub {
+  font-size: 11px;
+  color: #2ED573;
+  font-weight: 600;
+}
+
+/* 2. 淘宝式【天天领红包】促销横幅 */
+.taobao-redpack-banner {
+  background: linear-gradient(90deg, #ff4e00 0%, #ff1f00 50%, #ff5000 100%);
+  color: #ffffff;
+  padding: 8px 0;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(255, 31, 0, 0.25);
+}
+.redpack-flex {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.redpack-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+.redpack-badge {
+  background: #ffd100;
+  color: #d63031;
+  font-weight: 900;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+}
+.redpack-title {
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+.claim-btn-pulse {
+  background: #ffffff;
+  color: #ff3800;
+  border: none;
+  font-weight: 800;
+  font-size: 12px;
+  padding: 5px 14px;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+.claim-btn-pulse:hover {
+  transform: scale(1.05);
+  background: #fff8e1;
+}
+
+/* 3. 商品卡片电商属性增强 */
+.goods-sales-metrics {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 6px 0;
+  font-size: 11px;
+}
+.goods-sales-metrics .sales-num {
+  color: #999;
+}
+.goods-sales-metrics .rating-num {
+  color: #ff5000;
+  font-weight: 600;
+}
+.goods-sales-metrics .sf-pill {
+  background: #e6f7ff;
+  color: #1890ff;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: bold;
+}
+.goods-price-section .orig-price {
+  font-size: 11px;
+  color: #999;
+  text-decoration: line-through;
+  margin-left: 6px;
+}
+.card-action-btns {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.card-action-btns .quick-buy-btn {
+  background: #ff5000;
+  border-color: #ff5000;
+  color: #fff;
+  font-weight: bold;
+}
+
+/* 4. 淘宝右侧固定悬浮工具栏 */
+.taobao-float-toolstrip {
+  position: fixed;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #ffffff;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+  padding: 8px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 1999;
+}
+.toolstrip-item {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+.toolstrip-item:hover {
+  background: #fff0ea;
+}
+.tool-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.tool-avatar {
+  border: 2px solid #ff5000;
+}
+.tool-label {
+  font-size: 11px;
+  color: #555;
+  font-weight: 500;
+}
+.toolstrip-item:hover .tool-label {
+  color: #ff5000;
+}
+.cart-cell .tool-badge {
+  color: #ff5000;
+}
+.tool-cell.red-cell {
+  color: #e74c3c;
+}
+.tool-cell.green-cell {
+  color: #27ae60;
+}
+.top-cell {
+  border-top: 1px solid #f0f0f0;
+  margin-top: 4px;
+}
+
+/* 5. 仿淘宝商品详情页大弹窗 */
+.taobao-detail-dialog .el-dialog__header {
+  padding: 10px 20px;
+  margin-right: 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+.detail-page-container {
+  padding: 0 4px;
+}
+.detail-breadcrumb {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 16px;
+}
+.detail-breadcrumb .sep {
+  margin: 0 6px;
+  color: #ccc;
+}
+.detail-breadcrumb .cur {
+  color: #ff5000;
+  font-weight: 600;
+}
+
+.detail-top-section {
+  display: flex;
+  gap: 28px;
+}
+.detail-left-gallery {
+  width: 400px;
+  flex-shrink: 0;
+}
+.main-preview-box {
+  width: 100%;
+  height: 380px;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  background: #f7f7f7;
+  border: 1px solid #eee;
+}
+.main-preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+.main-preview-box:hover .main-preview-img {
+  transform: scale(1.08);
+}
+.trust-corner-tag {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: rgba(46, 213, 115, 0.95);
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 800;
+  backdrop-filter: blur(4px);
+}
+.thumb-selector-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+.thumb-box {
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.thumb-box.active {
+  border-color: #ff5000;
+}
+.thumb-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.detail-coop-card {
+  margin-top: 16px;
+  padding: 12px;
+  background: #f9fbf9;
+  border: 1px solid #e1efe1;
+  border-radius: 10px;
+}
+.coop-card-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.coop-card-info .name {
+  font-size: 13px;
+  font-weight: bold;
+  color: #2c3e50;
+}
+.coop-card-info .auth-pill {
+  font-size: 11px;
+  color: #27ae60;
+  margin-top: 2px;
+}
+.coop-card-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.detail-right-info {
+  flex: 1;
+}
+.detail-title-box .brand-tag {
+  background: #ff5000;
+  color: #fff;
+  font-size: 11px;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-right: 6px;
+}
+.detail-title-box .geo-tag {
+  background: #e8f5e9;
+  color: #2e7d32;
+  font-size: 11px;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+.product-main-title {
+  font-size: 20px;
+  font-weight: 900;
+  color: #111;
+  margin: 8px 0 6px 0;
+  line-height: 1.4;
+}
+.product-sub-title {
+  font-size: 12px;
+  color: #777;
+  margin-bottom: 12px;
+}
+
+.taobao-price-banner {
+  background: linear-gradient(135deg, #fff5f0 0%, #ffece4 100%);
+  border-radius: 10px;
+  padding: 14px 18px;
+  border: 1px solid #ffd8c7;
+  margin-bottom: 14px;
+}
+.price-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.subsidy-label {
+  background: #ff5000;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+.subsidy-tip {
+  font-size: 12px;
+  color: #e65100;
+  font-weight: 600;
+}
+.price-main-row {
+  display: flex;
+  align-items: baseline;
+  margin: 6px 0;
+}
+.p-currency {
+  font-size: 16px;
+  color: #ff5000;
+  font-weight: bold;
+}
+.p-amount {
+  font-size: 32px;
+  color: #ff5000;
+  font-weight: 900;
+  letter-spacing: -1px;
+}
+.p-decimal {
+  font-size: 18px;
+  color: #ff5000;
+  font-weight: bold;
+}
+.p-orig {
+  font-size: 13px;
+  color: #999;
+  text-decoration: line-through;
+  margin-left: 12px;
+}
+.p-hot-tag {
+  margin-left: auto;
+  background: #ffecb3;
+  color: #d84315;
+  font-size: 11px;
+  font-weight: bold;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+.price-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: #666;
+  border-top: 1px dashed #ffd8c7;
+  padding-top: 8px;
+  margin-top: 6px;
+}
+
+.detail-coupon-row,
+.detail-delivery-row,
+.detail-sku-row,
+.detail-qty-row {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 14px;
+  font-size: 13px;
+}
+.detail-coupon-row .label,
+.detail-delivery-row .label,
+.detail-sku-row .label,
+.detail-qty-row .label {
+  width: 76px;
+  color: #888;
+  flex-shrink: 0;
+  padding-top: 4px;
+}
+.coupon-tag-list {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.coupon-chip {
+  background: #ffebe8;
+  color: #ff3800;
+  border: 1px dashed #ff5000;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.more-coupon-link {
+  color: #ff5000;
+  font-size: 12px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.delivery-content {
+  font-size: 13px;
+  color: #333;
+}
+.service-guarantees {
+  display: flex;
+  gap: 14px;
+  margin-top: 6px;
+  font-size: 11px;
+  color: #27ae60;
+  font-weight: 600;
+}
+
+.sku-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+.sku-card-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.sku-card-btn.active {
+  border-color: #ff5000;
+  background: #fff8f5;
+  box-shadow: 0 0 0 1px #ff5000 inset;
+}
+.sku-card-btn .sku-name {
+  font-weight: 700;
+  color: #333;
+}
+.sku-card-btn .sku-price {
+  color: #ff5000;
+  font-weight: 800;
+}
+.sku-card-btn .sku-tip {
+  font-size: 11px;
+  color: #888;
+}
+
+.stock-hint {
+  font-size: 12px;
+  color: #999;
+  margin-left: 14px;
+  align-self: center;
+}
+
+.detail-action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 24px;
+}
+.btn-cart-lg {
+  background: #ff9400;
+  border-color: #ff9400;
+  color: #fff;
+  font-weight: bold;
+  flex: 1.2;
+}
+.btn-buy-lg {
+  background: #ff5000;
+  border-color: #ff5000;
+  color: #fff;
+  font-weight: bold;
+  flex: 1.2;
+}
+.btn-chat-lg {
+  color: #ff5000;
+  border-color: #ffd8c7;
+  background: #fff8f5;
+}
+
+.detail-bottom-tabs {
+  margin-top: 30px;
+  border-top: 1px solid #f0f0f0;
+  padding-top: 16px;
+}
+.tab-desc-content .desc-card-block {
+  background: #fdfdfd;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 14px;
+}
+.desc-card-block h3 {
+  margin: 0 0 8px 0;
+  font-size: 15px;
+  color: #2c3e50;
+}
+.desc-card-block p {
+  font-size: 13px;
+  color: #555;
+  line-height: 1.7;
+  margin: 4px 0;
+}
+
+.review-score-banner {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  background: #fafafa;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+.score-circle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.score-circle .num {
+  font-size: 28px;
+  font-weight: 900;
+  color: #ff5000;
+}
+.score-circle .sub {
+  font-size: 11px;
+  color: #999;
+}
+.impress-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.impress-tags .tag {
+  background: #fff0ea;
+  color: #ff5000;
+  padding: 4px 10px;
+  border-radius: 14px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.buyer-review-list .buyer-rev-item {
+  border-bottom: 1px solid #f0f0f0;
+  padding: 14px 0;
+}
+.rev-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.user-meta .uname {
+  font-weight: bold;
+  font-size: 13px;
+  margin-right: 8px;
+}
+.rev-user .rev-time {
+  margin-left: auto;
+  font-size: 12px;
+  color: #aaa;
+}
+.rev-spec {
+  font-size: 11px;
+  color: #999;
+  margin: 4px 0;
+}
+.rev-text {
+  font-size: 13px;
+  color: #333;
+  line-height: 1.6;
+}
+.rev-imgs {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.rev-imgs img {
+  width: 72px;
+  height: 72px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.cert-formal-sheet {
+  border: 2px solid #27ae60;
+  background: #fdfdfd;
+  padding: 24px;
+  border-radius: 8px;
+  position: relative;
+}
+.cert-seal {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  width: 90px;
+  height: 90px;
+  border: 3px solid #27ae60;
+  border-radius: 50%;
+  color: #27ae60;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(-15deg);
+  opacity: 0.85;
+}
+.cert-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+}
+.cert-table td {
+  border: 1px solid #ddd;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+.pass-tag {
+  color: #27ae60;
+  font-weight: bold;
+}
+.expert-sign-box {
+  background: #f4fbf4;
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+/* 6. 天天领红包神券中心弹窗 */
+.coupon-center-dialog .coupon-banner-top {
+  text-align: center;
+  margin-bottom: 16px;
+}
+.coupon-banner-top .c-title {
+  font-size: 18px;
+  font-weight: 900;
+  color: #ff3800;
+}
+.coupon-banner-top .c-sub {
+  font-size: 12px;
+  color: #888;
+  margin-top: 4px;
+}
+.coupon-cards-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.coupon-ticket-card {
+  display: flex;
+  align-items: center;
+  background: linear-gradient(135deg, #fff5f2 0%, #ffe9e2 100%);
+  border: 1px solid #ffcdbc;
+  border-radius: 10px;
+  padding: 12px 16px;
+  position: relative;
+}
+.coupon-ticket-card.claimed {
+  opacity: 0.7;
+}
+.ticket-left {
+  display: flex;
+  align-items: baseline;
+  width: 90px;
+  color: #ff3800;
+}
+.ticket-left .t-currency {
+  font-size: 16px;
+  font-weight: bold;
+}
+.ticket-left .t-amount {
+  font-size: 36px;
+  font-weight: 900;
+  letter-spacing: -1px;
+}
+.ticket-middle {
+  flex: 1;
+}
+.ticket-middle .t-name {
+  font-size: 14px;
+  font-weight: bold;
+  color: #222;
+}
+.ticket-middle .t-condition {
+  font-size: 12px;
+  color: #e65100;
+  margin: 2px 0;
+}
+.ticket-middle .t-expiry {
+  font-size: 11px;
+  color: #888;
+}
+
+/* 7. 旺旺在线即时客服抽屉 */
+.wangwang-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.service-header-strip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.service-info .s-name {
+  font-size: 13px;
+  font-weight: bold;
+  color: #333;
+}
+.service-info .s-status {
+  font-size: 11px;
+  color: #27ae60;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.green-dot {
+  width: 7px;
+  height: 7px;
+  background: #27ae60;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.current-consult-prod {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fbfbfb;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 8px;
+  margin: 10px 0;
+}
+.current-consult-prod img {
+  width: 48px;
+  height: 48px;
+  border-radius: 4px;
+  object-fit: cover;
+}
+.current-consult-prod .cp-text {
+  flex: 1;
+}
+.cp-text .cp-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #333;
+}
+.cp-text .cp-price {
+  font-size: 12px;
+  color: #ff5000;
+  font-weight: bold;
+}
+
+.chat-bubble-stream {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.bubble-row {
+  display: flex;
+  gap: 8px;
+}
+.bubble-row.buyer {
+  flex-direction: row-reverse;
+}
+.bubble-content {
+  max-width: 75%;
+}
+.bubble-time {
+  font-size: 10px;
+  color: #aaa;
+  margin-bottom: 2px;
+}
+.bubble-row.buyer .bubble-time {
+  text-align: right;
+}
+.bubble-text {
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.bubble-row.service .bubble-text {
+  background: #f0f0f0;
+  color: #333;
+  border-top-left-radius: 2px;
+}
+.bubble-row.buyer .bubble-text {
+  background: #ff5000;
+  color: #fff;
+  border-top-right-radius: 2px;
+}
+
+.quick-question-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 0;
+  border-top: 1px solid #f0f0f0;
+}
+.q-pill {
+  background: #f5f5f5;
+  color: #666;
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.q-pill:hover {
+  background: #fff0ea;
+  color: #ff5000;
+}
+
+.wangwang-input-bar {
+  display: flex;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #eee;
+}
+
+/* 8. 顺丰冷链物流与回执单 */
+.cold-chain-head-card {
+  background: #000;
+  color: #fff;
+  border-radius: 8px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.sf-brand {
+  font-size: 18px;
+  font-weight: 900;
+  color: #e60012;
+  margin-right: 12px;
+}
+.tracking-code {
+  font-size: 13px;
+  color: #ccc;
+}
+.temp-badge {
+  background: #2ed573;
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+}
+.temp-text {
+  font-size: 11px;
+  color: #aaa;
+  display: block;
+  margin-top: 2px;
+}
+
+.order-success-panel {
+  text-align: center;
+  padding: 10px 0;
+}
+.success-icon-big {
+  font-size: 56px;
+}
+.success-title {
+  font-size: 20px;
+  font-weight: bold;
+  color: #2c3e50;
+  margin: 10px 0 4px 0;
+}
+.success-slogan {
+  font-size: 12px;
+  color: #27ae60;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+.receipt-box {
+  background: #f9fbf9;
+  border: 1px solid #e1efe1;
+  border-radius: 8px;
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 13px;
+  margin-bottom: 20px;
+}
+.receipt-box .r-row {
+  margin: 6px 0;
+  display: flex;
+  justify-content: space-between;
+}
+.receipt-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+/* 9. 仿淘宝收银台增强 */
+.cashier-addr-section {
+  background: #fafafa;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+}
+.section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+.addr-select-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.addr-item-radio {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #fff;
+}
+.addr-item-radio.active {
+  border-color: #ff5000;
+  background: #fff8f5;
+  box-shadow: 0 0 0 1px #ff5000 inset;
+}
+.addr-tag-name {
+  font-size: 13px;
+  margin-bottom: 2px;
+}
+.addr-text {
+  font-size: 12px;
+  color: #666;
+}
+
+.cashier-service-box,
+.cashier-discounts-box {
+  background: #fafafa;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-top: 10px;
+  font-size: 12px;
+}
+.service-row,
+.disc-row {
+  display: flex;
+  justify-content: space-between;
+  margin: 5px 0;
+}
+.c-green {
+  color: #27ae60;
+  font-weight: bold;
+}
+.c-red {
+  color: #ff5000;
+  font-weight: bold;
+}
+.c-blue {
+  color: #1890ff;
+  font-weight: bold;
+}
+
+.cashier-remark-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  font-size: 13px;
+}
+.cashier-pay-ways {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  font-size: 13px;
+}
+
+/* 10. 买家订单卡片流 */
+.order-status-tabs-row {
+  margin-bottom: 14px;
+}
+.taobao-order-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.taobao-order-card {
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+}
+.order-header-bar {
+  background: #f7f7f7;
+  padding: 8px 14px;
+  font-size: 12px;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.order-header-bar .o-no {
+  color: #333;
+}
+.order-header-bar .o-shop {
+  font-weight: bold;
+  color: #444;
+}
+.order-header-bar .o-status {
+  margin-left: auto;
+}
+.order-body-grid {
+  display: flex;
+  align-items: center;
+  padding: 14px;
+  gap: 16px;
+}
+.order-prod-item {
+  display: flex;
+  gap: 12px;
+  flex: 2;
+}
+.order-prod-item img {
+  width: 70px;
+  height: 70px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+.order-prod-item .p-meta .p-title {
+  font-size: 13px;
+  font-weight: bold;
+  color: #333;
+}
+.order-prod-item .p-meta .p-sku {
+  font-size: 11px;
+  color: #888;
+  margin: 3px 0;
+}
+.order-receiver-box {
+  flex: 1.2;
+  font-size: 12px;
+  color: #555;
+  border-left: 1px solid #f0f0f0;
+  padding-left: 14px;
+}
+.order-receiver-box .addr-line {
+  color: #999;
+  font-size: 11px;
+}
+.order-price-col {
+  flex: 1;
+  text-align: center;
+  border-left: 1px solid #f0f0f0;
+}
+.order-price-col .price-val {
+  font-size: 16px;
+  font-weight: 900;
+  color: #333;
+}
+.order-price-col .ship-tip {
+  font-size: 11px;
+  color: #999;
+}
+.order-actions-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-left: 1px solid #f0f0f0;
+  padding-left: 14px;
+}
+
 /* ============================================================== */
 /* “不烧心”经典视觉体系规范                                        */
 /* ============================================================== */
