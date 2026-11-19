@@ -1,7 +1,7 @@
 <template>
   <div class="taobao-root">
     <!-- ============================================================== -->
-    <!-- 1. 顶部全局功能条 (登录/注册/六大角色切换 - 全卡通头像)         -->
+    <!-- 1. 顶部全局功能条 (精简单行，字体11px小巧防折行，仿淘宝顶级质感)  -->
     <!-- ============================================================== -->
     <header class="pc-top-bar">
       <div class="site-container top-bar-inner">
@@ -10,7 +10,7 @@
           <div class="region-dropdown">
             <el-dropdown @command="handleRegionChange">
               <span class="region-pill interactive">
-                <el-icon><Location /></el-icon> {{ currentRegion }} [切换地区]
+                <el-icon><Location /></el-icon> {{ currentRegion }} [切换]
               </span>
               <template #dropdown>
                 <el-dropdown-menu>
@@ -31,12 +31,9 @@
               <span class="register-trigger" @click="openAuthModal('register')">免费注册</span>
             </template>
             <template v-else>
-              <span class="welcome-text">您好，<strong>{{ currentUser.realName }}</strong></span>
-              <el-tag size="small" :type="getRoleTagType(currentRole)" effect="dark" class="role-badge-tag">
-                <el-icon><component :is="getRoleIcon(currentRole)" /></el-icon>
-                {{ getRoleName(currentRole) }}
-              </el-tag>
-              <span class="logout-btn" @click="handleLogout">[退出登录]</span>
+              <span class="welcome-text">您好，<strong>{{ currentUser.realName.replace('不烧心金牌吃客', '') || currentUser.realName }}</strong></span>
+              <span class="role-mini-pill">{{ getRoleName(currentRole) }}</span>
+              <span class="logout-btn" @click="handleLogout">[退出]</span>
             </template>
           </div>
         </div>
@@ -69,23 +66,22 @@
             </el-popover>
           </div>
 
-          <!-- 快捷身份模拟切换器 (6种角色) -->
+          <!-- 快捷身份模拟切换器 (6种角色，紧凑设计) -->
           <div class="role-switch-box">
-            <span class="role-title"><el-icon><Switch /></el-icon> 体验角色：</span>
-            <el-select v-model="currentRole" size="small" style="width: 130px;" @change="handleFastRoleSwitch">
+            <span class="role-title"><el-icon><Switch /></el-icon> 角色:</span>
+            <el-select v-model="currentRole" size="small" class="role-select-compact" style="width: 104px;" @change="handleFastRoleSwitch">
               <el-option label="普通买家" value="CONSUMER" />
               <el-option label="种植合作社" value="COOP" />
               <el-option label="产地主播" value="ANCHOR" />
               <el-option label="采购批发商" value="WHOLESALE" />
-              <el-option label="平台运营管理" value="ADMIN" />
-              <el-option label="农技质检专家" value="EXPERT" />
+              <el-option label="平台运营" value="ADMIN" />
+              <el-option label="农技质检" value="EXPERT" />
             </el-select>
           </div>
 
           <!-- 默认卡通用户头像 -->
-          <div class="user-profile-badge" @click="openAuthModal('login')">
-            <el-avatar :size="26" :src="currentUser.avatar" class="cartoon-avatar" />
-            <span class="user-nickname">{{ currentUser.realName }}</span>
+          <div class="user-profile-badge" @click="openAuthModal('login')" :title="currentUser.realName">
+            <el-avatar :size="24" :src="currentUser.avatar" class="cartoon-avatar" />
           </div>
         </div>
       </div>
@@ -366,7 +362,7 @@
 
           <div class="flash-sale-grid">
             <div 
-              v-for="item in displayProducts.slice(0, 4)" 
+              v-for="item in displayProducts.slice(0, 5)" 
               :key="'flash-' + item.id" 
               class="flash-card"
               @click="openProductDetail(item)"
@@ -2227,6 +2223,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElNotification } from 'element-plus'
 import api from './api'
+import { DEFAULT_37_PRODUCTS } from './mockData.js'
 
 // 当前主 Tab: home | cart | live | wholesale | trace | workbench
 const activeTab = ref('home')
@@ -2566,8 +2563,8 @@ const newsItems = ref([
   '中检院绿色农副认证专家对平台37处产地样品完成专项核验全部过审'
 ])
 
-// 核心商品列表 (37款地标农产品)
-const productList = ref([])
+// 核心商品列表 (预置37款地标农产品，秒开即见，后端响应后自动无缝同步)
+const productList = ref([...DEFAULT_37_PRODUCTS])
 
 // 搜索与筛选动态计算 (保证0延迟高亮过滤)
 const displayProducts = computed(() => {
@@ -2676,7 +2673,7 @@ const onlineViewerCount = ref(3528)
 const liveLikeCount = ref(1892)
 const isFollowed = ref(false)
 const inputChatText = ref('')
-const explainingProduct = ref(null)
+const explainingProduct = ref(DEFAULT_37_PRODUCTS[0])
 const isPipActive = ref(false)
 
 const chatMessages = ref([
@@ -3439,16 +3436,21 @@ onUnmounted(() => {
 .top-quick-links {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin-right: 16px;
+  gap: 12px;
+  margin-right: 4px;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
 }
 .quick-link {
-  font-size: 12px;
+  font-size: 11px;
   color: #666;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
+  line-height: 1;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
   transition: color 0.2s;
 }
 .quick-link:hover {
@@ -3456,7 +3458,8 @@ onUnmounted(() => {
 }
 .quick-link .c-red {
   color: #ff5000;
-  margin-left: 2px;
+  margin-left: 1px;
+  font-weight: 700;
 }
 .qr-popover-box {
   text-align: center;
@@ -4578,20 +4581,35 @@ onUnmounted(() => {
 }
 
 .site-container {
-  max-width: 1220px;
+  max-width: 1440px;
+  width: 95%;
   margin: 0 auto;
-  padding: 0 12px;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+@media (min-width: 1680px) {
+  .site-container {
+    max-width: 1560px;
+    width: 95%;
+  }
+}
+@media (max-width: 1280px) {
+  .site-container {
+    width: 98%;
+    padding: 0 10px;
+  }
 }
 
-/* 顶部 Bar */
+/* 顶部 Bar (精致11px小字体，单行防换行，纯正淘宝电商质感) */
 .pc-top-bar {
   background-color: #f5f5f5;
   border-bottom: 1px solid #e5e5e5;
-  font-size: 12px;
+  font-size: 11px;
   color: #666;
+  line-height: 1;
 }
 .top-bar-inner {
-  height: 38px;
+  height: 32px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -4599,29 +4617,41 @@ onUnmounted(() => {
 .top-bar-left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
 }
 .region-pill {
   color: #ff5000;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
+  font-size: 11px;
   font-weight: 500;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  cursor: pointer;
 }
 .brand-slogan-pill {
   background: #e8f5e9;
   color: #2e7d32;
-  padding: 2px 8px;
+  padding: 2px 7px;
   border-radius: 4px;
+  font-size: 11px;
   font-weight: 700;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
 }
 .auth-bar-status {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
+  font-size: 11px;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
 }
 .login-trigger {
   color: #ff5000;
@@ -4638,14 +4668,25 @@ onUnmounted(() => {
 .register-trigger:hover {
   color: #ff5000;
 }
+.role-mini-pill {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: #fff0ea;
+  color: #ff5000;
+  border: 1px solid #ffd8c7;
+  font-weight: 500;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
 .role-badge-tag {
-  margin: 0 4px;
-  font-size: 11px;
+  margin: 0 2px;
+  font-size: 10px;
 }
 .logout-btn {
   color: #999;
   cursor: pointer;
-  margin-left: 4px;
+  margin-left: 2px;
 }
 .logout-btn:hover {
   color: #e60012;
@@ -4654,29 +4695,43 @@ onUnmounted(() => {
 .top-bar-right {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 12px;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
 }
 .role-switch-box {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
 }
 .role-title {
   color: #ff5000;
   font-weight: bold;
+  font-size: 11px;
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
+.role-select-compact :deep(.el-input__wrapper) {
+  height: 24px !important;
+  padding: 0 6px !important;
+  font-size: 11px !important;
 }
 .user-profile-badge {
   display: flex;
   align-items: center;
-  gap: 8px;
   cursor: pointer;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
 }
 .cartoon-avatar {
   background: #fff0ea;
   border: 1.5px solid #ff5000;
+  flex-shrink: 0 !important;
 }
 .cartoon-avatar-big {
   background: #fff0ea;
@@ -4751,10 +4806,17 @@ onUnmounted(() => {
   display: flex;
   gap: 12px;
   align-items: center;
+  white-space: nowrap !important;
+  overflow: hidden;
 }
 .hot-tag {
   color: #666;
   cursor: pointer;
+  white-space: nowrap !important;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
 }
 .hot-tag:hover, .hot-tag.active {
   color: #ff5000;
@@ -4764,9 +4826,11 @@ onUnmounted(() => {
   color: #ff5000;
   padding: 1px 6px;
   border-radius: 4px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 3px;
+  white-space: nowrap !important;
+  flex-shrink: 0;
 }
 
 .header-fast-entry {
@@ -4797,7 +4861,7 @@ onUnmounted(() => {
   height: 44px;
 }
 .all-category-head {
-  width: 200px;
+  width: 220px;
   background-color: #ff5000;
   color: white;
   height: 100%;
@@ -4807,23 +4871,27 @@ onUnmounted(() => {
   padding-left: 18px;
   font-size: 14px;
   font-weight: bold;
+  white-space: nowrap !important;
+  flex-shrink: 0;
 }
 .nav-menu {
   display: flex;
   list-style: none;
   height: 100%;
-  margin-left: 16px;
+  margin-left: 12px;
 }
 .nav-menu li {
-  padding: 0 20px;
+  padding: 0 16px;
   height: 100%;
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: bold;
   color: #333;
   cursor: pointer;
+  white-space: nowrap !important;
+  flex-shrink: 0;
   position: relative;
 }
 .nav-menu li:hover, .nav-menu li.current {
@@ -4870,18 +4938,20 @@ onUnmounted(() => {
   margin-top: 14px;
 }
 .hero-category-side {
-  width: 200px;
+  width: 220px;
   background: white;
   border-radius: 8px;
   padding: 10px 0;
   box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+  flex-shrink: 0;
 }
 .cat-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 16px;
+  padding: 10px 14px;
   cursor: pointer;
+  white-space: nowrap !important;
   transition: all 0.2s;
 }
 .cat-row:hover, .cat-row.active {
@@ -4891,12 +4961,22 @@ onUnmounted(() => {
 .cat-left {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-weight: 500;
+  gap: 6px;
+  font-weight: 600;
+  white-space: nowrap !important;
+  flex-shrink: 0;
+}
+.cat-name {
+  white-space: nowrap !important;
+  flex-shrink: 0;
 }
 .cat-sub {
   font-size: 11px;
   color: #999;
+  white-space: nowrap !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
 }
 .cat-banner-mini {
   margin: 12px 14px 4px;
@@ -5107,8 +5187,13 @@ onUnmounted(() => {
 
 .flash-sale-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+@media (max-width: 1280px) {
+  .flash-sale-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 .flash-card {
   display: flex;
@@ -5242,8 +5327,18 @@ onUnmounted(() => {
 /* 商品卡片瀑布流 (海量样品) */
 .product-wall {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 16px;
+}
+@media (min-width: 1680px) {
+  .product-wall {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+@media (max-width: 1280px) {
+  .product-wall {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 .taobao-goods-card {
   background: white;
