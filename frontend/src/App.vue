@@ -119,17 +119,20 @@
             </button>
           </div>
 
-          <!-- 淘宝热搜词推荐 -->
+          <!-- 淘宝热搜词推荐 (丰富扩充展开，填补顶部横向空白) -->
           <div class="search-hot-tags">
             <span class="hot-tag active" @click="quickSearchTag('苹果')">凉山丑苹果</span>
             <span class="hot-tag" @click="quickSearchTag('西红柿')">寿光铁皮番茄</span>
             <span class="hot-tag active" @click="quickSearchTag('大米')">五常大米</span>
             <span class="hot-tag" @click="quickSearchTag('羊肉')">苏尼特羔羊肉</span>
-            <span class="hot-tag" @click="quickSearchTag('大闸蟹')">阳澄湖大闸蟹</span>
+            <span class="hot-tag active" @click="quickSearchTag('大闸蟹')">阳澄湖大闸蟹</span>
+            <span class="hot-tag" @click="quickSearchTag('草莓')">丹东99草莓</span>
+            <span class="hot-tag active" @click="quickSearchTag('枸杞')">中宁红枸杞</span>
+            <span class="hot-tag" @click="quickSearchTag('鲟鱼')">抚远鲟鱼子</span>
             <span class="hot-tag badge-tag" @click="filterPresaleOnly">
               <el-icon><Calendar /></el-icon> 田间预售
             </span>
-            <span class="hot-tag" @click="activeTab = 'wholesale'">大宗吨批</span>
+            <span class="hot-tag" @click="activeTab = 'wholesale'">大宗吨批直采</span>
           </div>
         </div>
 
@@ -270,7 +273,12 @@
               @click="selectCategory(cat.name)"
             >
               <div class="cat-left">
-                <el-icon><component :is="cat.icon" /></el-icon>
+                <el-icon v-if="cat.name === '水产'" class="seafood-icon">
+                  <svg viewBox="0 0 1024 1024" width="1em" height="1em" fill="currentColor">
+                    <path d="M893.3 540.8c-24.1-13.7-44.5-30.8-62.1-50.5-22.1-24.8-48.4-44.7-77.8-59.1-39.7-19.5-83.3-29.6-127.8-29.6-67.4 0-131.6 23.3-182.9 66.4l-118-99.3c-14.8-12.5-36.9-10.7-49.4 4.1l-10.4 12.3c-12.5 14.8-10.7 36.9 4.1 49.4l98.6 83c-23.7 29.5-39.8 63.8-46.7 100.8H184c-19.3 0-35 15.7-35 35v8c0 19.3 15.7 35 35 35h137c6.9 37 23 71.3 46.7 100.8l-98.6 83c-14.8 12.5-16.6 34.6-4.1 49.4l10.4 12.3c12.5 14.8 34.6 16.6 49.4 4.1l118-99.3c51.3 43.1 115.5 66.4 182.9 66.4 44.5 0 88.1-10.1 127.8-29.6 29.4-14.4 55.7-34.3 77.8-59.1 17.6-19.7 38-36.8 62.1-50.5 24.3-13.8 39.5-39.4 39.5-67.5s-15.2-53.7-39.5-67.5zM656 464c22.1 0 40 17.9 40 40s-17.9 40-40 40-40-17.9-40-40 17.9-40 40-40z"/>
+                  </svg>
+                </el-icon>
+                <el-icon v-else><component :is="cat.icon" /></el-icon>
                 <span class="cat-name">{{ cat.name }}</span>
               </div>
               <span class="cat-sub">{{ cat.sub }}</span>
@@ -355,7 +363,7 @@
               </div>
             </div>
             <div class="strip-right-link" @click="selectCategory('水果')">
-              <span>查看更多精品 (共 37 款)</span>
+              <span>查看更多精品 (共 40 款)</span>
               <el-icon><ArrowRight /></el-icon>
             </div>
           </div>
@@ -486,7 +494,7 @@
         <!-- 空态提示 -->
         <div v-else class="empty-search-panel">
           <el-empty description="未检索到符合条件的农副产品，请尝试其他关键词或查看全部">
-            <el-button type="primary" @click="clearSearch">重置并查看全部 37 款农产品</el-button>
+            <el-button type="primary" @click="clearSearch">重置并查看全部 40 款农产品</el-button>
           </el-empty>
         </div>
 
@@ -2525,9 +2533,9 @@ const categoryList = ref([
   { name: '水果', sub: '苹果/脐橙/荔枝/草莓/芒果 (12款)', icon: 'Apple' },
   { name: '蔬菜', sub: '西红柿/黄瓜/娃娃菜/紫薯 (7款)', icon: 'Dish' },
   { name: '粮油', sub: '五常大米/山茶油/小米 (5款)', icon: 'Box' },
-  { name: '滋补', sub: '中宁枸杞/野山参/三七 (5款)', icon: 'Grape' },
-  { name: '禽畜', sub: '苏尼特羊肉/走地土鸡 (4款)', icon: 'Food' },
-  { name: '水产', sub: '阳澄湖大闸蟹/刺参/黄鱼 (4款)', icon: 'Watercup' }
+  { name: '滋补', sub: '中宁枸杞/野山参/雪莲蜜 (6款)', icon: 'Grape' },
+  { name: '禽畜', sub: '苏尼特羊排/走地土鸡 (5款)', icon: 'Food' },
+  { name: '水产', sub: '阳澄湖大闸蟹/鲟鱼子/黄鱼 (5款)', icon: 'Fish' }
 ])
 
 // 轮播图配置 (不烧心品牌)
@@ -3483,13 +3491,29 @@ onUnmounted(() => {
   font-weight: 600;
 }
 
-/* 2. 淘宝式【天天领红包】促销横幅 */
+/* 2. 淘宝式【天天领红包】促销横幅 (不占全屏，宽度和整体适配对齐) */
 .taobao-redpack-banner {
   background: linear-gradient(90deg, #ff4e00 0%, #ff1f00 50%, #ff5000 100%);
   color: #ffffff;
-  padding: 8px 0;
+  padding: 8px 16px;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(255, 31, 0, 0.25);
+  box-shadow: 0 2px 8px rgba(255, 31, 0, 0.2);
+  max-width: 1440px;
+  width: 95%;
+  margin: 10px auto;
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+@media (min-width: 1680px) {
+  .taobao-redpack-banner {
+    max-width: 1560px;
+    width: 95%;
+  }
+}
+@media (max-width: 1280px) {
+  .taobao-redpack-banner {
+    width: 98%;
+  }
 }
 .redpack-flex {
   display: flex;
@@ -4757,11 +4781,16 @@ onUnmounted(() => {
   display: block;
 }
 
-/* 搜索栏 */
+/* 搜索栏 (放大展开，填满顶部横向空白) */
 .main-search-wrapper {
   flex: 1;
-  max-width: 640px;
-  margin: 0 40px;
+  max-width: 820px;
+  margin: 0 28px;
+}
+@media (min-width: 1680px) {
+  .main-search-wrapper {
+    max-width: 920px;
+  }
 }
 .search-input-group {
   display: flex;
@@ -4769,19 +4798,20 @@ onUnmounted(() => {
   border-radius: 24px;
   overflow: hidden;
   background-color: #fff;
-  height: 42px;
+  height: 44px;
+  box-shadow: 0 2px 10px rgba(255, 80, 0, 0.12);
 }
 .search-type-select :deep(.el-input__wrapper) {
   box-shadow: none !important;
   border-radius: 0;
   border-right: 1px solid #eee;
-  width: 95px;
+  width: 98px;
 }
 .search-input {
   flex: 1;
   border: none;
   outline: none;
-  padding: 0 16px;
+  padding: 0 18px;
   font-size: 14px;
 }
 .search-submit-btn {
@@ -4789,23 +4819,24 @@ onUnmounted(() => {
   border: none;
   color: white;
   font-weight: bold;
-  padding: 0 28px;
+  padding: 0 32px;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 15px;
+  font-size: 16px;
   transition: opacity 0.2s;
 }
 .search-submit-btn:hover {
   opacity: 0.92;
 }
 .search-hot-tags {
-  margin-top: 6px;
+  margin-top: 8px;
   font-size: 12px;
   display: flex;
-  gap: 12px;
+  justify-content: space-between;
   align-items: center;
+  width: 100%;
   white-space: nowrap !important;
   overflow: hidden;
 }
@@ -4817,14 +4848,16 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 3px;
+  transition: color 0.2s;
 }
 .hot-tag:hover, .hot-tag.active {
   color: #ff5000;
+  font-weight: 600;
 }
 .hot-tag.badge-tag {
   background: #fff0ea;
   color: #ff5000;
-  padding: 1px 6px;
+  padding: 1px 7px;
   border-radius: 4px;
   display: inline-flex;
   align-items: center;
@@ -4850,10 +4883,27 @@ onUnmounted(() => {
   color: #ff5000;
 }
 
-/* 一级导航栏 */
+/* 一级导航栏 (不占全屏，宽度和主版心整体适配对齐) */
 .pc-main-nav {
   background-color: #ffffff;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+  max-width: 1440px;
+  width: 95%;
+  margin: 0 auto;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  border-radius: 8px 8px 0 0;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+@media (min-width: 1680px) {
+  .pc-main-nav {
+    max-width: 1560px;
+    width: 95%;
+  }
+}
+@media (max-width: 1280px) {
+  .pc-main-nav {
+    width: 98%;
+  }
 }
 .nav-inner {
   display: flex;
