@@ -41,7 +41,7 @@
         <div class="top-bar-right">
           <!-- 淘宝式快捷菜单 -->
           <div class="top-quick-links">
-            <span class="quick-link" @click="activeTab = 'workbench'">我的淘宝</span>
+            <span class="quick-link" @click="activeTab = 'workbench'">个人中心</span>
             <span class="quick-link" @click="activeTab = 'cart'">
               购物车 <strong class="c-red">({{ cartList.length }})</strong>
             </span>
@@ -157,7 +157,7 @@
     <!-- 3. 仿淘宝经典一级导航栏 (含专属购物车 Tab)                     -->
     <!-- ============================================================== -->
     <nav class="pc-main-nav">
-      <div class="site-container nav-inner">
+      <div class="nav-inner">
         <div class="all-category-head">
           <el-icon><Grid /></el-icon> 全部 6 大品种分类
         </div>
@@ -193,7 +193,7 @@
     <!-- 3.1 淘宝式【天天领红包·开市盛典】促销通栏                        -->
     <!-- ============================================================== -->
     <div class="taobao-redpack-banner" @click="couponCenterVisible = true">
-      <div class="site-container redpack-flex">
+      <div class="redpack-flex">
         <div class="redpack-left">
           <span class="redpack-badge">🧧 天天领红包</span>
           <span class="redpack-title">【不烧心·开市农品盛典】全场顺丰冷链包邮直发 ｜ 领 ¥88 农品满减消费券包 ｜ SGS 320项农残零检出安心购！</span>
@@ -241,19 +241,19 @@
         <div class="mobile-kong-container">
           <div class="kong-item" @click="selectCategory('水果')">
             <div class="kong-icon red"><el-icon><Apple /></el-icon></div>
-            <span>时令鲜果 (12)</span>
+            <span>时令鲜果 (14)</span>
           </div>
           <div class="kong-item" @click="selectCategory('蔬菜')">
             <div class="kong-icon green"><el-icon><Dish /></el-icon></div>
-            <span>绿色蔬菜 (7)</span>
+            <span>绿色蔬菜 (8)</span>
           </div>
           <div class="kong-item" @click="selectCategory('粮油')">
             <div class="kong-icon orange"><el-icon><Box /></el-icon></div>
-            <span>五谷原粮 (5)</span>
+            <span>五谷原粮 (6)</span>
           </div>
           <div class="kong-item" @click="selectCategory('滋补')">
             <div class="kong-icon purple"><el-icon><Grape /></el-icon></div>
-            <span>特色滋补 (5)</span>
+            <span>特色滋补 (8)</span>
           </div>
           <div class="kong-item" @click="activeTab = 'cart'">
             <div class="kong-icon blue"><el-icon><ShoppingCartFull /></el-icon></div>
@@ -363,7 +363,7 @@
               </div>
             </div>
             <div class="strip-right-link" @click="selectCategory('水果')">
-              <span>查看更多精品 (共 40 款)</span>
+              <span>查看更多精品 (共 50 款)</span>
               <el-icon><ArrowRight /></el-icon>
             </div>
           </div>
@@ -376,7 +376,7 @@
               @click="openProductDetail(item)"
             >
               <div class="flash-img-wrap">
-                <img :src="item.coverImage" />
+                <img :src="item.coverImage" @error="handleImgFallback($event, item.category)" />
                 <span class="flash-tag">补贴直降</span>
               </div>
               <div class="flash-info">
@@ -428,7 +428,7 @@
             @click="openProductDetail(product)"
           >
             <div class="goods-img-box">
-              <img :src="product.coverImage" loading="lazy" />
+              <img :src="product.coverImage" @error="handleImgFallback($event, product.category)" loading="lazy" />
               <span v-if="product.isPresale === 1" class="corner-ribbon presale">田间预售</span>
               <span v-else class="corner-ribbon origin">产地现采</span>
               <div class="origin-geo-pill">
@@ -494,7 +494,7 @@
         <!-- 空态提示 -->
         <div v-else class="empty-search-panel">
           <el-empty description="未检索到符合条件的农副产品，请尝试其他关键词或查看全部">
-            <el-button type="primary" @click="clearSearch">重置并查看全部 40 款农产品</el-button>
+            <el-button type="primary" @click="clearSearch">重置并查看全部 50 款农产品</el-button>
           </el-empty>
         </div>
 
@@ -1088,7 +1088,7 @@
         <div v-else-if="currentRole === 'CONSUMER'" class="consumer-panel">
           <div class="workbench-bar">
             <div>
-              <h2><el-icon><ShoppingBag /></el-icon> 个人买家中心·我的淘宝</h2>
+              <h2><el-icon><ShoppingBag /></el-icon> 买家个人中心</h2>
               <p>账号：{{ currentUser.realName }} ｜ 不烧心会员等级：<el-tag type="danger">金牌特权会员</el-tag></p>
             </div>
             <div class="bar-actions">
@@ -1245,7 +1245,7 @@
           <div class="metric-row">
             <div class="metric-card">
               <span class="metric-label">已签发质检证书</span>
-              <span class="metric-val green">37 <span>份</span></span>
+              <span class="metric-val green">50 <span>份</span></span>
             </div>
             <div class="metric-card">
               <span class="metric-label">农残专项筛查项目</span>
@@ -1289,7 +1289,7 @@
       <!-- 8.5 淘宝经典右侧垂直悬浮工具条 -->
       <aside class="taobao-float-toolstrip">
         <div class="toolstrip-item" @click="activeTab = 'workbench'">
-          <el-tooltip content="我的淘宝 / 会员中心" placement="left">
+          <el-tooltip content="个人中心 / 会员工作台" placement="left">
             <div class="tool-cell">
               <el-avatar :size="28" :src="currentUser.avatar" class="tool-avatar" />
               <span class="tool-label">我的</span>
@@ -2241,6 +2241,21 @@ const handleRegionChange = (r) => {
   ElMessage.success(`已切换送达城市为：【${r}】，已为您匹配周边顺丰次日达原产地货源！`)
 }
 
+// 图片加载失败自动兜底 (确保卡片永远不裂图)
+const handleImgFallback = (e, category) => {
+  const fallbackMap = {
+    '水果': 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=600',
+    '蔬菜': 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=600',
+    '粮油': 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=600',
+    '滋补': 'https://images.unsplash.com/photo-1596560548464-f010549b84d7?w=600',
+    '禽畜': 'https://images.unsplash.com/photo-1544025162-d76694265947?w=600',
+    '水产': 'https://images.unsplash.com/photo-1535591273668-578e31182c4f?w=600'
+  }
+  if (e && e.target) {
+    e.target.src = fallbackMap[category] || 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=600'
+  }
+}
+
 // ==========================================
 // 淘宝收银台与收货地址管理
 // ==========================================
@@ -2528,14 +2543,14 @@ const searchKeyword = ref('')
 const currentCategory = ref('全部')
 const presaleFilter = ref(null)
 
-// 6大品种分类 (附带样品数量)
+// 6大品种分类 (附带样品数量，共50款)
 const categoryList = ref([
-  { name: '水果', sub: '苹果/脐橙/荔枝/草莓/芒果 (12款)', icon: 'Apple' },
-  { name: '蔬菜', sub: '西红柿/黄瓜/娃娃菜/紫薯 (7款)', icon: 'Dish' },
-  { name: '粮油', sub: '五常大米/山茶油/小米 (5款)', icon: 'Box' },
-  { name: '滋补', sub: '中宁枸杞/野山参/雪莲蜜 (6款)', icon: 'Grape' },
-  { name: '禽畜', sub: '苏尼特羊排/走地土鸡 (5款)', icon: 'Food' },
-  { name: '水产', sub: '阳澄湖大闸蟹/鲟鱼子/黄鱼 (5款)', icon: 'Fish' }
+  { name: '水果', sub: '苹果/脐橙/荔枝/草莓/西梅 (14款)', icon: 'Apple' },
+  { name: '蔬菜', sub: '西红柿/黄瓜/紫薯/松茸 (8款)', icon: 'Dish' },
+  { name: '粮油', sub: '五常大米/山茶油/小米/花生 (6款)', icon: 'Box' },
+  { name: '滋补', sub: '中宁枸杞/虫草/龙井/雪莲蜜 (8款)', icon: 'Grape' },
+  { name: '禽畜', sub: '苏尼特羊排/土鸡/牦牛肉 (7款)', icon: 'Food' },
+  { name: '水产', sub: '阳澄湖大闸蟹/大对虾/三文鱼 (7款)', icon: 'Fish' }
 ])
 
 // 轮播图配置 (不烧心品牌)
@@ -2568,7 +2583,7 @@ const newsItems = ref([
   '“好产品，不烧心”品质宣言：全平台在售农特产农残抽检合格率达100%',
   '凉山盐源基地今日采收80吨，顺丰冷链专班专车直达发运',
   '鼎鲜优选大宗集采中心与赣南脐橙基地完成30吨电子意向合同签约',
-  '中检院绿色农副认证专家对平台37处产地样品完成专项核验全部过审'
+  '中检院绿色农副认证专家对平台50处产地样品完成专项核验全部过审'
 ])
 
 // 核心商品列表 (预置37款地标农产品，秒开即见，后端响应后自动无缝同步)
@@ -2906,7 +2921,7 @@ const getRoleWorkbenchName = () => {
     case 'WHOLESALE': return '采购商集采中枢'
     case 'ADMIN': return '运营治理大屏'
     case 'EXPERT': return '农技质检服务台'
-    default: return '我的淘宝'
+    default: return '个人中心'
   }
 }
 
@@ -4762,16 +4777,17 @@ onUnmounted(() => {
   border: 2px solid #ff5000;
 }
 
-/* 仿淘宝 Header */
+/* 仿淘宝 Header (去除全屏贯穿分割线，分割线在版心内自适应) */
 .pc-header {
   background-color: #ffffff;
   padding: 16px 0;
-  border-bottom: 2px solid #ff5000;
 }
 .header-inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  border-bottom: 2px solid #ff5000;
+  padding-bottom: 12px;
 }
 .brand-logo {
   cursor: pointer;
@@ -4923,6 +4939,7 @@ onUnmounted(() => {
   font-weight: bold;
   white-space: nowrap !important;
   flex-shrink: 0;
+  border-top-left-radius: 8px;
 }
 .nav-menu {
   display: flex;
